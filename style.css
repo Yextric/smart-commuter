@@ -1222,6 +1222,7 @@ footer {
     font-weight: 600;
     cursor: pointer;
     transition: 0.2s ease;
+    margin: 20px;
 }
 
 .share-location-btn:hover {
