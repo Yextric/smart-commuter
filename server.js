@@ -7,6 +7,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve the frontend files
+app.use(express.static(__dirname));
+
 
 // =====================================================
 // ONEMAP TOKEN
@@ -73,8 +76,8 @@ async function getOneMapToken() {
 
 app.get("/", (req, res) => {
 
-    res.send(
-        "Smart Commuter backend is running!"
+    res.sendFile(
+        __dirname + "/index.html"
     );
 
 });
