@@ -1617,3 +1617,26 @@ footer {
 .live-map-section.hidden {
     display: none;
 }
+
+.live-location-marker {
+    background: transparent;
+    border: none;
+}
+
+.my-location-dot {
+    width: 16px;
+    height: 16px;
+    background: #8b5cf6;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
+
+.friend-location-dot {
+    width: 16px;
+    height: 16px;
+    background: #3b82f6;
+    border: 3px solid white;
+    border-radius: 50%;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+}
