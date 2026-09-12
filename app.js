@@ -3558,6 +3558,27 @@ function startLocationSharing() {
 
 }
 
+// =====================================================
+// LIVE LOCATION MARKER ICONS
+// =====================================================
+
+const myLocationIcon = L.divIcon({
+    className: "live-location-marker",
+    html: `
+        <div class="my-location-dot"></div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+});
+
+const friendLocationIcon = L.divIcon({
+    className: "live-location-marker",
+    html: `
+        <div class="friend-location-dot"></div>
+    `,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+});
 
 // =====================================================
 // HANDLE LOCATION UPDATE
@@ -3611,13 +3632,16 @@ function handleLocationUpdate(
     if (!myLocationMarker) {
 
         myLocationMarker =
-            L.marker(
-                [latitude, longitude]
-            )
-            .addTo(liveMap)
-            .bindPopup(
-                "<strong>You</strong>"
-            );
+    L.marker(
+        [latitude, longitude],
+        {
+            icon: myLocationIcon
+        }
+    )
+    .addTo(liveMap)
+    .bindPopup(
+        "<strong>You</strong>"
+    );
 
     } else {
 
@@ -3824,13 +3848,16 @@ socket.on(
         if (!friendLocationMarker) {
 
             friendLocationMarker =
-                L.marker(
-                    friendLatLng
-                )
-                .addTo(liveMap)
-                .bindPopup(
-                    "<strong>Friend</strong>"
-                );
+    L.marker(
+        friendLatLng,
+        {
+            icon: friendLocationIcon
+        }
+    )
+    .addTo(liveMap)
+    .bindPopup(
+        "<strong>Friend</strong>"
+    );
 
             console.log(
                 "Friend marker created."
