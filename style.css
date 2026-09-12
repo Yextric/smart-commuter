@@ -1640,3 +1640,37 @@ footer {
     border-radius: 50%;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
+
+/* =====================================================
+   LIVE LOCATION LEGEND
+   ===================================================== */
+
+.location-legend {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 24px;
+    margin-top: 12px;
+    font-size: 14px;
+}
+
+.location-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.legend-you {
+    background: #8b5cf6;
+}
+
+.legend-friend {
+    background: #3b82f6;
+}
