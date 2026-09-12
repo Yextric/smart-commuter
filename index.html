@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CommuteTogether</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+    <!-- LEAFLET MAP -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+</head>
+
+
+<body>
+
+
+    <!-- HEADER -->
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                ↗
+            </div>
+
+            <div>
+
+                <h1>
+                    CommuteTogether
+                </h1>
+
+                <p>
+                    Smarter journeys, together.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="location-status">
+
+            <span class="status-dot"></span>
+
+            Singapore
+
+        </div>
+
+    </header>
+
+
+
+    <!-- MAIN -->
+    <main class="container">
+
+
+
+        <!-- HERO -->
+        <section class="hero">
+
+
+            <div class="hero-text">
+
+                <span class="eyebrow">
+                    SMART COMMUTER COMPANION
+                </span>
+
+
+                <h2>
+                    Meet halfway.<br>
+                    <span>Travel together.</span>
+                </h2>
+
+
+                <p>
+                    Find the best place to meet your friend before
+                    continuing the journey together.
+                </p>
+
+            </div>
+
+
+
+            <div class="hero-visual">
+
+                <div class="route-circle circle-1"></div>
+
+                <div class="route-circle circle-2"></div>
+
+
+                <div class="person person-you">
+
+                    <span>
+                        YOU
+                    </span>
+
+                </div>
+
+
+                <div class="person person-friend">
+
+                    <span>
+                        FRIEND
+                    </span>
+
+                </div>
+
+
+                <div class="meeting-point">
+
+                    <span>
+                        ★
+                    </span>
+
+                </div>
+
+
+                <div class="route-line line-1"></div>
+
+                <div class="route-line line-2"></div>
+
+            </div>
+
+        </section>
+
+
+
+
+        <!-- JOURNEY INPUT -->
+        <section class="journey-card">
+
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-label">
+                        PLAN YOUR JOURNEY
+                    </span>
+
+
+                    <h3>
+                        Where are you both heading?
+                    </h3>
+
+                </div>
+
+
+                <span class="step-label">
+                    01 / 01
+                </span>
+
+            </div>
+
+
+
+            <!-- LOCATION INPUTS -->
+            <div class="input-grid">
+
+
+
+                <!-- USER -->
+                <div class="location-input">
+
+                    <div class="input-icon you-icon">
+                        ●
+                    </div>
+
+
+                    <div class="input-content">
+
+                        <label for="userLocation">
+                            YOU ARE HERE
+                        </label>
+
+
+                        <input
+                            type="text"
+                            id="userLocation"
+                            placeholder="e.g. Sengkang"
+                        >
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- FRIEND -->
+                <div class="location-input">
+
+                    <div class="input-icon friend-icon">
+                        ●
+                    </div>
+
+
+                    <div class="input-content">
+
+                        <label for="friendLocation">
+                            YOUR FRIEND
+                        </label>
+
+
+                        <input
+                            type="text"
+                            id="friendLocation"
+                            placeholder="e.g. Serangoon"
+                        >
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- DESTINATION -->
+                <div class="location-input destination-input">
+
+                    <div class="input-icon destination-icon">
+                        ◆
+                    </div>
+
+
+                    <div class="input-content">
+
+                        <label for="destination">
+                            DESTINATION
+                        </label>
+
+
+                        <input
+                            type="text"
+                            id="destination"
+                            placeholder="e.g. Outram Park"
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- MEETING PREFERENCE -->
+            <div class="meeting-preference">
+
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            MEETING PREFERENCE
+                        </span>
+
+
+                        <h3>
+                            Where would you like to meet?
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="preference-options">
+
+
+
+                    <!-- NEAREST MEETING POINT -->
+                    <label class="preference-option">
+
+                        <input
+                            type="radio"
+                            name="meetingPreference"
+                            value="nearest"
+                            checked
+                        >
+
+
+                        <div class="preference-card">
+
+
+                            <div class="preference-icon nearest-icon">
+                                ●
+                            </div>
+
+
+                            <div class="preference-text">
+
+                                <strong>
+                                    Nearest meeting point
+                                </strong>
+
+
+                                <span>
+                                    Meet as early as possible along both routes.
+                                </span>
+
+                            </div>
+
+
+                            <div class="preference-check">
+                                ✓
+                            </div>
+
+                        </div>
+
+                    </label>
+
+
+
+
+                    <!-- NEAREST TRANSFER POINT -->
+                    <label class="preference-option">
+
+                        <input
+                            type="radio"
+                            name="meetingPreference"
+                            value="transfer"
+                        >
+
+
+                        <div class="preference-card">
+
+
+                            <div class="preference-icon transfer-icon">
+                                ↔
+                            </div>
+
+
+                            <div class="preference-text">
+
+                                <strong>
+                                    Nearest transfer point
+                                </strong>
+
+
+                                <span>
+                                    Meet where both can change lines before travelling together.
+                                </span>
+
+                            </div>
+
+
+                            <div class="preference-check">
+                                ✓
+                            </div>
+
+                        </div>
+
+                    </label>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- FIND JOURNEY BUTTON -->
+            <button
+                id="findButton"
+                class="find-button"
+                type="button"
+            >
+
+                <span>
+                    Find our meeting point
+                </span>
+
+
+                <span class="button-arrow">
+                    →
+                </span>
+
+            </button>
+
+
+
+
+            <!-- JOURNEY CODE / FRIEND CONNECTION -->
+            <div class="journey-code-section">
+
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            SHARE YOUR JOURNEY
+                        </span>
+
+
+                        <h3>
+                            Connect with your friend
+                        </h3>
+
+
+                        <p class="journey-code-description">
+                            Create a private journey and share the code with your friend,
+                            or enter your friend's code to join their journey.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- GENERATED JOURNEY CODE -->
+                <div
+                    id="journeyCodeDisplay"
+                    class="journey-code-display hidden"
+                >
+
+                    <span class="journey-code-display-label">
+                        YOUR JOURNEY CODE
+                    </span>
+
+
+                    <strong id="journeyCodeText">
+                        A7K92P
+                    </strong>
+
+
+                    <span class="journey-code-display-help">
+                        Share this code with your friend to connect.
+                    </span>
+
+                </div>
+
+
+
+
+                <!-- JOURNEY CODE CARD -->
+                <div class="journey-code-card">
+
+
+                    <!-- CREATE JOURNEY -->
+                    <button
+                        type="button"
+                        id="createJourneyBtn"
+                        class="create-journey-btn"
+                    >
+
+                        <span>
+                            ＋
+                        </span>
+
+                        Create Journey
+
+                    </button>
+
+
+
+
+                    <!-- OR -->
+                    <div class="journey-or">
+
+                        <span>
+                            OR
+                        </span>
+
+                    </div>
+
+
+
+
+                    <!-- JOIN JOURNEY -->
+                    <div class="join-journey">
+
+
+                        <label for="journeyCodeInput">
+                            Enter your friend's code
+                        </label>
+
+
+                        <div class="journey-code-input-row">
+
+
+                            <input
+                                type="text"
+                                id="journeyCodeInput"
+                                maxlength="6"
+                                placeholder="e.g. A7K92P"
+                                autocomplete="off"
+                            >
+
+
+                            <button
+                                type="button"
+                                id="joinJourneyBtn"
+                                class="join-journey-btn"
+                            >
+                                Join
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+
+
+                    <!-- CONNECTION STATUS -->
+                    <div
+                        id="journeyConnectionStatus"
+                        class="journey-connection-status"
+                    >
+
+                        <span class="connection-status-dot"></span>
+
+
+                        <span id="journeyConnectionText">
+                            Ready to connect
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- ERROR MESSAGE -->
+            <div
+                id="errorMessage"
+                class="error-message"
+            ></div>
+
+
+        </section>
+
+
+
+
+        <!-- ================================================= -->
+        <!-- ROUTE RESULTS -->
+        <!-- ================================================= -->
+
+        <section
+            id="result"
+            class="results hidden"
+        >
+
+
+            <!-- RECOMMENDATION -->
+            <div class="recommendation-card">
+
+
+                <div class="recommendation-header">
+
+
+                    <span class="eyebrow">
+                        RECOMMENDED
+                    </span>
+
+
+                    <div
+                        class="match-badge"
+                        id="matchBadge"
+                    >
+                        Best match
+                    </div>
+
+                </div>
+
+
+
+
+                <div class="meeting-content">
+
+
+                    <div class="meeting-icon">
+                        ★
+                    </div>
+
+
+                    <div class="meeting-info">
+
+
+                        <span class="small-label">
+                            MEET AT
+                        </span>
+
+
+                        <h2 id="meetingPoint">
+                            Serangoon MRT
+                        </h2>
+
+
+                        <p id="explanation">
+                            Meet here, then travel together to your destination.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- ROUTES -->
+            <div class="route-section">
+
+
+                <div class="section-heading result-heading">
+
+
+                    <div>
+
+                        <span class="section-label">
+                            YOUR JOURNEY
+                        </span>
+
+
+                        <h3>
+                            How you'll get there
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <div class="route-grid">
+
+
+
+                    <!-- USER ROUTE -->
+                    <div class="route-card">
+
+
+                        <div class="route-card-header">
+
+
+                            <div>
+
+                                <span class="route-label">
+                                    YOUR ROUTE
+                                </span>
+
+
+                                <h4>
+                                    You → Meeting Point
+                                </h4>
+
+                            </div>
+
+
+                            <div class="route-person-icon">
+                                ●
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            id="userRoute"
+                            class="route-summary"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+
+
+
+                    <!-- FRIEND ROUTE -->
+                    <div class="route-card">
+
+
+                        <div class="route-card-header">
+
+
+                            <div>
+
+                                <span class="route-label">
+                                    FRIEND'S ROUTE
+                                </span>
+
+
+                                <h4>
+                                    Friend → Meeting Point
+                                </h4>
+
+                            </div>
+
+
+                            <div class="route-person-icon">
+                                ●
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            id="friendRoute"
+                            class="route-summary"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- SHARED JOURNEY -->
+                <div class="shared-card">
+
+
+                    <div class="shared-header">
+
+
+                        <div>
+
+                            <span class="route-label">
+                                SHARED JOURNEY
+                            </span>
+
+
+                            <h4>
+                                From meeting point to destination
+                            </h4>
+
+                        </div>
+
+
+                        <span class="shared-badge">
+                            Together
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        id="sharedRoute"
+                        class="shared-route"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+
+
+        <!-- ================================================= -->
+        <!-- LIVE JOURNEY MAP -->
+        <!-- SEPARATE FROM ROUTE RESULTS -->
+        <!-- ================================================= -->
+
+        <section
+            id="liveJourneySection"
+            class="live-map-section hidden"
+        >
+
+
+            <!-- MAP HEADER -->
+            <div class="live-map-header">
+
+
+                <div>
+
+                    <span class="section-label">
+                        LIVE JOURNEY
+                    </span>
+
+
+                    <h3>
+                        Where are you?
+                    </h3>
+
+
+                    <p>
+                        Share your live location while travelling together.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- SHARE LOCATION BUTTON -->
+            <button
+                id="shareLocationBtn"
+                class="share-location-btn"
+                type="button"
+            >
+                Share My Location
+            </button>
+
+
+
+
+            <!-- MAP -->
+            <div class="live-map-container">
+
+                <div id="liveMap"></div>
+
+            </div>
+
+
+
+
+            <!-- LOCATION STATUS -->
+            <div
+                id="locationStatus"
+                class="location-status-text"
+            >
+                Location sharing is off
+            </div>
+
+
+
+
+            <!-- MAP LEGEND -->
+            <div class="live-map-legend">
+
+
+                <div class="legend-item">
+
+                    <span class="legend-dot legend-you"></span>
+
+                    <span>
+                        You
+                    </span>
+
+                </div>
+
+
+                <div class="legend-item">
+
+                    <span class="legend-dot legend-friend"></span>
+
+                    <span>
+                        Friend
+                    </span>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
+
+
+
+    <!-- FOOTER -->
+    <footer>
+
+        <p>
+            CommuteTogether · Smart public transport planning
+        </p>
+
+    </footer>
+
+
+
+
+    <!-- LEAFLET JAVASCRIPT -->
+    <script
+        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+    ></script>
+
+
+
+
+    <!-- SOCKET.IO -->
+    <script src="http://localhost:3000/socket.io/socket.io.js"></script>
+
+
+
+
+    <!-- YOUR JAVASCRIPT -->
+    <script src="app.js"></script>
+
+
+</body>
+
+</html>
