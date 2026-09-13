@@ -890,42 +890,186 @@
 
             </div>
 
+            
+
         </section>
+<!-- ================================================= -->
+<!-- DESTINATION ALARM -->
+<!-- ================================================= -->
+
+<section class="destination-alarm">
+
+    <div class="alarm-header">
+
+        <div>
+
+            <span class="section-label">
+                DESTINATION ALERT
+            </span>
+
+            <h3>
+                Don't miss your stop
+            </h3>
+
+            <p>
+                Enter your destination stop and get alerted before you arrive.
+            </p>
+
+        </div>
+
+        <div class="alarm-icon">
+            🔔
+        </div>
+
+    </div>
 
 
-    </main>
+    <!-- DESTINATION STOP -->
+
+    <div class="alarm-destination">
+
+        <label for="alarmDestination">
+            DESTINATION STOP
+        </label>
+
+        <input
+            type="text"
+            id="alarmDestination"
+            placeholder="e.g. Orchard MRT"
+            autocomplete="off"
+        >
+
+    </div>
 
 
+    <!-- MRT LINE -->
+
+    <div class="alarm-line">
+
+        <label for="alarmLine">
+            MRT LINE
+        </label>
+
+        <select id="alarmLine">
+
+            <option value="">
+                Select MRT line
+            </option>
+
+            <option value="North South Line">
+                North South Line
+            </option>
+
+            <option value="East West Line">
+                East West Line
+            </option>
+
+            <option value="North East Line">
+                North East Line
+            </option>
+
+            <option value="Circle Line">
+                Circle Line
+            </option>
+
+            <option value="Downtown Line">
+                Downtown Line
+            </option>
+
+        </select>
+
+    </div>
 
 
-    <!-- FOOTER -->
-    <footer>
+    <!-- ALERT DISTANCE -->
 
-        <p>
-            CommuteTogether · Smart public transport planning
-        </p>
+    <div class="alarm-options">
 
-    </footer>
+        <span class="alarm-label">
+            Alert me:
+        </span>
+
+        <div class="alarm-option-buttons">
+
+            <button
+                type="button"
+                class="alarm-option"
+                data-stops="1"
+            >
+                1 stop
+            </button>
+
+            <button
+                type="button"
+                class="alarm-option"
+                data-stops="2"
+            >
+                2 stops
+            </button>
+
+            <button
+                type="button"
+                class="alarm-option"
+                data-stops="3"
+            >
+                3 stops
+            </button>
+
+        </div>
+
+    </div>
 
 
+    <!-- SET ALARM -->
+
+    <button
+        id="setDestinationAlarmBtn"
+        class="set-alarm-btn"
+        type="button"
+    >
+        Set Destination Alert
+    </button>
 
 
-    <!-- LEAFLET JAVASCRIPT -->
-    <script
-        src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
-    ></script>
+    <!-- STATUS -->
+
+    <div
+        id="destinationAlarmStatus"
+        class="destination-alarm-status hidden"
+    ></div>
+
+</section>
 
 
+</main>
 
 
-    <!-- SOCKET.IO -->
-    <script src="/socket.io/socket.io.js"></script>
+<!-- FOOTER -->
+
+<footer>
+
+    <p>
+        CommuteTogether · Smart public transport planning
+    </p>
+
+</footer>
 
 
+<!-- LEAFLET JAVASCRIPT -->
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
 
 
-    <!-- YOUR JAVASCRIPT -->
-    <script src="app.js"></script>
+<!-- SOCKET.IO -->
+
+<script src="/socket.io/socket.io.js"></script>
+
+
+<!-- YOUR JAVASCRIPT -->
+
+<script src="app.js"></script>
 
 
 </body>
