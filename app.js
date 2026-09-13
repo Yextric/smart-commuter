@@ -3597,6 +3597,10 @@ function handleLocationUpdate(
     const accuracy =
         position.coords.accuracy;
 
+    checkDestinationAlarm(
+    latitude,
+    longitude
+    );
 
     console.log(
         "My location:",
@@ -4564,6 +4568,721 @@ if (shareLocationBtn) {
 
     console.error(
         "Share My Location button not found."
+    );
+
+}
+
+
+// =====================================================
+// DESTINATION ALERT
+// =====================================================
+
+let selectedAlarmStops = null;
+
+let destinationAlertActive = false;
+
+let destinationAlertStation = null;
+
+let destinationAlertLine = null;
+
+let destinationAlertWatchId = null;
+
+let destinationAlertNotified = false;
+
+let destinationAlertPreviousStops = null;
+
+// =====================================================
+// GET ALERT ELEMENTS
+// =====================================================
+
+const alarmOptionButtons =
+    document.querySelectorAll(".alarm-option");
+
+const setDestinationAlarmBtn =
+    document.getElementById(
+        "setDestinationAlarmBtn"
+    );
+
+const alarmDestination =
+    document.getElementById(
+        "alarmDestination"
+    );
+
+const alarmLine =
+    document.getElementById(
+        "alarmLine"
+    );
+
+const destinationAlarmStatus =
+    document.getElementById(
+        "destinationAlarmStatus"
+    );
+
+
+// =====================================================
+// NORMALISE ALERT STATION NAME
+// =====================================================
+
+function normaliseAlertStation(name) {
+
+    if (!name) {
+        return "";
+    }
+
+    let value =
+        String(name)
+            .trim()
+            .replace(/\s+MRT\s+STATION$/i, "")
+            .replace(/\s+MRT$/i, "")
+            .replace(/\s+MRT\s*$/i, "")
+            .trim();
+
+    return value.toLowerCase();
+
+}
+
+
+// =====================================================
+// FIND STATION IN MRT LINE
+// =====================================================
+
+function findAlertStationIndex(
+    stationName,
+    lineName
+) {
+
+    const stations =
+        mrtLines[lineName];
+
+    if (!stations) {
+        return -1;
+    }
+
+    const target =
+        normaliseAlertStation(
+            stationName
+        );
+
+    return stations.findIndex(
+        station =>
+            normaliseAlertStation(
+                station
+            ) === target
+    );
+
+}
+
+
+// =====================================================
+// GET STATION COORDINATES
+// =====================================================
+
+async function getAlertStationCoordinates(
+    stationName
+) {
+
+    const key =
+        normaliseAlertStation(
+            stationName
+        );
+
+    if (
+        destinationAlertStationCoordinates[key]
+    ) {
+
+        return destinationAlertStationCoordinates[
+            key
+        ];
+
+    }
+
+    const location =
+        await searchOneMapLocation(
+            `${stationName} MRT Station`
+        );
+
+    if (!location) {
+
+        console.error(
+            "Unable to find MRT station:",
+            stationName
+        );
+
+        return null;
+    }
+
+    const coordinates = {
+
+        latitude:
+            location.latitude,
+
+        longitude:
+            location.longitude
+
+    };
+
+    destinationAlertStationCoordinates[key] =
+        coordinates;
+
+    return coordinates;
+
+}
+
+
+// =====================================================
+// FIND NEAREST STATION ON SELECTED LINE
+// =====================================================
+
+async function findNearestAlertStation(
+    latitude,
+    longitude,
+    lineName
+) {
+
+    const stations =
+        mrtLines[lineName];
+
+    if (!stations) {
+        return null;
+    }
+
+    let nearestStation = null;
+
+    let shortestDistance =
+        Infinity;
+
+
+    for (
+        const station of stations
+    ) {
+
+        const coordinates =
+            await getAlertStationCoordinates(
+                station
+            );
+
+        if (!coordinates) {
+            continue;
+        }
+
+        const distance =
+            calculateDistance(
+                latitude,
+                longitude,
+                coordinates.latitude,
+                coordinates.longitude
+            );
+
+        if (
+            distance <
+            shortestDistance
+        ) {
+
+            shortestDistance =
+                distance;
+
+            nearestStation = {
+
+                name:
+                    station,
+
+                distance:
+                    distance,
+
+                index:
+                    stations.indexOf(
+                        station
+                    )
+
+            };
+
+        }
+
+    }
+
+    return nearestStation;
+
+}
+
+
+// =====================================================
+// CHECK DESTINATION ALERT
+// =====================================================
+
+async function checkDestinationAlarm(
+    latitude,
+    longitude
+) {
+
+    if (
+        !destinationAlertActive ||
+        destinationAlertNotified
+    ) {
+
+        return;
+
+    }
+
+
+    if (
+        !destinationAlertLine ||
+        !destinationAlertStation
+    ) {
+
+        return;
+
+    }
+
+
+    const nearestStation =
+        await findNearestAlertStation(
+            latitude,
+            longitude,
+            destinationAlertLine
+        );
+
+
+    if (!nearestStation) {
+
+        return;
+
+    }
+
+
+    const destinationIndex =
+        findAlertStationIndex(
+            destinationAlertStation,
+            destinationAlertLine
+        );
+
+
+    if (destinationIndex === -1) {
+
+        console.error(
+            "Destination station not found on line:",
+            destinationAlertStation,
+            destinationAlertLine
+        );
+
+        return;
+
+    }
+
+
+    const currentIndex =
+        nearestStation.index;
+
+
+    const stopsAway =
+        Math.abs(
+            destinationIndex -
+            currentIndex
+        );
+
+
+    console.log(
+        "Destination Alert:",
+        {
+            currentStation:
+                nearestStation.name,
+
+            destination:
+                destinationAlertStation,
+
+            stopsAway:
+                stopsAway
+        }
+    );
+
+
+    // -----------------------------------------
+    // CHECK ALERT DISTANCE
+    // -----------------------------------------
+
+    if (
+    destinationAlertPreviousStops !== null &&
+    destinationAlertPreviousStops > selectedAlarmStops &&
+    stopsAway <= selectedAlarmStops &&
+    stopsAway > 0
+) {
+
+        destinationAlertNotified =
+            true;
+
+        destinationAlertActive =
+            false;
+
+
+        if (
+            destinationAlertWatchId !== null
+        ) {
+
+            navigator.geolocation.clearWatch(
+                destinationAlertWatchId
+            );
+
+            destinationAlertWatchId =
+                null;
+
+        }
+
+
+        const stopText =
+            stopsAway === 1
+                ? "stop"
+                : "stops";
+
+
+        const message =
+            `${stopsAway} ${stopText} until ${destinationAlertStation} — Get ready to alight!`;
+
+
+        // -----------------------------------------
+        // UPDATE PAGE
+        // -----------------------------------------
+
+        if (
+            destinationAlarmStatus
+        ) {
+
+            destinationAlarmStatus.textContent =
+                `🔔 ${message}`;
+
+            destinationAlarmStatus.classList.remove(
+                "hidden"
+            );
+
+        }
+
+
+        // -----------------------------------------
+        // SEND DEVICE NOTIFICATION
+        // -----------------------------------------
+
+        if (
+            "Notification" in window &&
+            Notification.permission === "granted"
+        ) {
+
+            new Notification(
+                "CommuteTogether",
+                {
+                    body:
+                        message
+                }
+            );
+
+        }
+
+
+        console.log(
+            "DESTINATION ALERT TRIGGERED"
+        );
+
+    }
+    destinationAlertPreviousStops =
+    stopsAway;
+}
+
+
+// =====================================================
+// SELECT NUMBER OF STOPS
+// =====================================================
+
+alarmOptionButtons.forEach(
+    button => {
+
+        button.addEventListener(
+            "click",
+            () => {
+
+                alarmOptionButtons.forEach(
+                    btn => {
+
+                        btn.classList.remove(
+                            "selected"
+                        );
+
+                    }
+                );
+
+
+                button.classList.add(
+                    "selected"
+                );
+
+
+                selectedAlarmStops =
+                    Number(
+                        button.dataset.stops
+                    );
+
+
+                console.log(
+                    "Selected alert:",
+                    selectedAlarmStops,
+                    "stops"
+                );
+
+            }
+        );
+
+    }
+);
+
+
+// =====================================================
+// SET DESTINATION ALERT
+// =====================================================
+
+if (setDestinationAlarmBtn) {
+
+    setDestinationAlarmBtn.addEventListener(
+        "click",
+        async () => {
+
+            const destination =
+                alarmDestination.value.trim();
+
+            const line =
+                alarmLine.value;
+
+
+            // -----------------------------------------
+            // CHECK DESTINATION
+            // -----------------------------------------
+
+            if (!destination) {
+
+                destinationAlarmStatus.textContent =
+                    "Please enter your destination stop.";
+
+                destinationAlarmStatus.classList.remove(
+                    "hidden"
+                );
+
+                return;
+
+            }
+
+
+            // -----------------------------------------
+            // CHECK MRT LINE
+            // -----------------------------------------
+
+            if (!line) {
+
+                destinationAlarmStatus.textContent =
+                    "Please select your MRT line.";
+
+                destinationAlarmStatus.classList.remove(
+                    "hidden"
+                );
+
+                return;
+
+            }
+
+
+            // -----------------------------------------
+            // CHECK NUMBER OF STOPS
+            // -----------------------------------------
+
+            if (!selectedAlarmStops) {
+
+                destinationAlarmStatus.textContent =
+                    "Please select when you want to be alerted.";
+
+                destinationAlarmStatus.classList.remove(
+                    "hidden"
+                );
+
+                return;
+
+            }
+
+
+            // -----------------------------------------
+            // FIND DESTINATION STATION
+            // -----------------------------------------
+
+            const destinationIndex =
+                findAlertStationIndex(
+                    destination,
+                    line
+                );
+
+
+            if (
+                destinationIndex === -1
+            ) {
+
+                destinationAlarmStatus.textContent =
+                    `${destination} was not found on the ${line}.`;
+
+                destinationAlarmStatus.classList.remove(
+                    "hidden"
+                );
+
+                return;
+
+            }
+
+
+            // -----------------------------------------
+            // REQUEST NOTIFICATION PERMISSION
+            // -----------------------------------------
+
+            if (
+                !("Notification" in window)
+            ) {
+
+                destinationAlarmStatus.textContent =
+                    "Notifications are not supported by this browser.";
+
+                destinationAlarmStatus.classList.remove(
+                    "hidden"
+                );
+
+                return;
+
+            }
+
+
+            const permission =
+                await Notification.requestPermission();
+
+
+            if (
+                permission !== "granted"
+            ) {
+
+                destinationAlarmStatus.textContent =
+                    "Please allow notifications to use the destination alert.";
+
+                destinationAlarmStatus.classList.remove(
+                    "hidden"
+                );
+
+                return;
+
+            }
+
+
+            // -----------------------------------------
+            // SAVE ALERT SETTINGS
+            // -----------------------------------------
+
+            destinationAlertStation =
+                mrtLines[line][destinationIndex];
+
+            destinationAlertLine =
+                line;
+
+            destinationAlertActive =
+                true;
+
+            destinationAlertNotified =
+                false;
+
+            destinationAlertPreviousStops =
+                null;
+
+
+            // -----------------------------------------
+            // START GPS WATCH
+            // -----------------------------------------
+
+            if (
+                !navigator.geolocation
+            ) {
+
+                destinationAlarmStatus.textContent =
+                    "Location is not supported by this browser.";
+
+                destinationAlarmStatus.classList.remove(
+                    "hidden"
+                );
+
+                return;
+
+            }
+
+
+            if (
+                destinationAlertWatchId !== null
+            ) {
+
+                navigator.geolocation.clearWatch(
+                    destinationAlertWatchId
+                );
+
+            }
+
+
+            destinationAlertWatchId =
+                navigator.geolocation.watchPosition(
+
+                    position => {
+
+                        checkDestinationAlarm(
+                            position.coords.latitude,
+                            position.coords.longitude
+                        );
+
+                    },
+
+                    error => {
+
+                        console.error(
+                            "Destination alert location error:",
+                            error
+                        );
+
+                    },
+
+                    {
+                        enableHighAccuracy: true,
+                        maximumAge: 5000,
+                        timeout: 15000
+                    }
+
+                );
+
+
+            // -----------------------------------------
+            // SHOW ACTIVE STATUS
+            // -----------------------------------------
+
+            const stopText =
+                selectedAlarmStops === 1
+                    ? "stop"
+                    : "stops";
+
+
+            destinationAlarmStatus.textContent =
+                `🔔 Alert set for ${destinationAlertStation} · ${line} · ${selectedAlarmStops} ${stopText} away.`;
+
+            destinationAlarmStatus.classList.remove(
+                "hidden"
+            );
+
+
+            console.log(
+                "Destination Alert Started:",
+                {
+                    destination:
+                        destinationAlertStation,
+
+                    line:
+                        destinationAlertLine,
+
+                    alertStops:
+                        selectedAlarmStops
+                }
+            );
+
+        }
     );
 
 }
