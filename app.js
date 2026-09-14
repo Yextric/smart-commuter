@@ -4580,16 +4580,10 @@ if (shareLocationBtn) {
 let selectedAlarmStops = null;
 
 let destinationAlertActive = false;
-
 let destinationAlertStation = null;
-
 let destinationAlertLine = null;
-
 let destinationAlertWatchId = null;
-
-let destinationAlertNotified = false;
-
-let destinationAlertPreviousStops = null;
+let destinationAlertNotificationInterval = null;
 
 // =====================================================
 // GET ALERT ELEMENTS
@@ -5035,6 +5029,12 @@ alarmOptionButtons.forEach(
 // SET DESTINATION ALERT
 // =====================================================
 
+const cancelDestinationAlarmBtn =
+    document.getElementById(
+        "cancelDestinationAlarmBtn"
+    );
+
+
 if (setDestinationAlarmBtn) {
 
     setDestinationAlarmBtn.addEventListener(
@@ -5103,39 +5103,10 @@ if (setDestinationAlarmBtn) {
 
 
             // -----------------------------------------
-            // FIND DESTINATION STATION
+            // CHECK NOTIFICATIONS
             // -----------------------------------------
 
-            const destinationIndex =
-                findAlertStationIndex(
-                    destination,
-                    line
-                );
-
-
-            if (
-                destinationIndex === -1
-            ) {
-
-                destinationAlarmStatus.textContent =
-                    `${destination} was not found on the ${line}.`;
-
-                destinationAlarmStatus.classList.remove(
-                    "hidden"
-                );
-
-                return;
-
-            }
-
-
-            // -----------------------------------------
-            // REQUEST NOTIFICATION PERMISSION
-            // -----------------------------------------
-
-            if (
-                !("Notification" in window)
-            ) {
+            if (!("Notification" in window)) {
 
                 destinationAlarmStatus.textContent =
                     "Notifications are not supported by this browser.";
@@ -5153,9 +5124,7 @@ if (setDestinationAlarmBtn) {
                 await Notification.requestPermission();
 
 
-            if (
-                permission !== "granted"
-            ) {
+            if (permission !== "granted") {
 
                 destinationAlarmStatus.textContent =
                     "Please allow notifications to use the destination alert.";
@@ -5174,7 +5143,7 @@ if (setDestinationAlarmBtn) {
             // -----------------------------------------
 
             destinationAlertStation =
-                mrtLines[line][destinationIndex];
+                destination;
 
             destinationAlertLine =
                 line;
@@ -5182,29 +5151,122 @@ if (setDestinationAlarmBtn) {
             destinationAlertActive =
                 true;
 
-            destinationAlertNotified =
-                false;
-
-            destinationAlertPreviousStops =
-                null;
-
 
             // -----------------------------------------
-            // START GPS WATCH
+            // CLEAR OLD TEST TIMER
             // -----------------------------------------
 
             if (
-                !navigator.geolocation
+                destinationAlertNotificationInterval !== null
             ) {
 
-                destinationAlarmStatus.textContent =
-                    "Location is not supported by this browser.";
-
-                destinationAlarmStatus.classList.remove(
-                    "hidden"
+                clearInterval(
+                    destinationAlertNotificationInterval
                 );
 
-                return;
+            }
+
+
+            // -----------------------------------------
+            // NOTIFICATION FUNCTION
+            // -----------------------------------------
+
+            function sendDestinationNotification() {
+
+                const message =
+                    `Get ready to alight at ${destinationAlertStation}!`;
+
+                new Notification(
+                    "CommuteTogether",
+                    {
+                        body: message
+                    }
+                );
+
+                console.log(
+                    "Destination notification sent:",
+                    new Date().toLocaleTimeString()
+                );
+
+            }
+
+
+            // -----------------------------------------
+            // SEND IMMEDIATELY
+            // -----------------------------------------
+
+            sendDestinationNotification();
+
+
+            // -----------------------------------------
+            // SEND EVERY 10 SECONDS
+            // -----------------------------------------
+
+            destinationAlertNotificationInterval =
+                setInterval(
+                    () => {
+
+                        if (
+                            !destinationAlertActive
+                        ) {
+
+                            return;
+
+                        }
+
+                        sendDestinationNotification();
+
+                    },
+                    10000
+                );
+
+
+            // -----------------------------------------
+            // SHOW STATUS
+            // -----------------------------------------
+
+            destinationAlarmStatus.textContent =
+                `🔔 Alert active for ${destinationAlertStation} · Notification every 10 seconds.`;
+
+            destinationAlarmStatus.classList.remove(
+                "hidden"
+            );
+
+
+            console.log(
+                "Destination Alert Started"
+            );
+
+        }
+    );
+
+}
+
+
+// =====================================================
+// CANCEL DESTINATION ALERT
+// =====================================================
+
+if (cancelDestinationAlarmBtn) {
+
+    cancelDestinationAlarmBtn.addEventListener(
+        "click",
+        () => {
+
+            destinationAlertActive =
+                false;
+
+
+            if (
+                destinationAlertNotificationInterval !== null
+            ) {
+
+                clearInterval(
+                    destinationAlertNotificationInterval
+                );
+
+                destinationAlertNotificationInterval =
+                    null;
 
             }
 
@@ -5217,51 +5279,14 @@ if (setDestinationAlarmBtn) {
                     destinationAlertWatchId
                 );
 
+                destinationAlertWatchId =
+                    null;
+
             }
 
 
-            destinationAlertWatchId =
-                navigator.geolocation.watchPosition(
-
-                    position => {
-
-                        checkDestinationAlarm(
-                            position.coords.latitude,
-                            position.coords.longitude
-                        );
-
-                    },
-
-                    error => {
-
-                        console.error(
-                            "Destination alert location error:",
-                            error
-                        );
-
-                    },
-
-                    {
-                        enableHighAccuracy: true,
-                        maximumAge: 5000,
-                        timeout: 15000
-                    }
-
-                );
-
-
-            // -----------------------------------------
-            // SHOW ACTIVE STATUS
-            // -----------------------------------------
-
-            const stopText =
-                selectedAlarmStops === 1
-                    ? "stop"
-                    : "stops";
-
-
             destinationAlarmStatus.textContent =
-                `🔔 Alert set for ${destinationAlertStation} · ${line} · ${selectedAlarmStops} ${stopText} away.`;
+                "Alert cancelled.";
 
             destinationAlarmStatus.classList.remove(
                 "hidden"
@@ -5269,17 +5294,7 @@ if (setDestinationAlarmBtn) {
 
 
             console.log(
-                "Destination Alert Started:",
-                {
-                    destination:
-                        destinationAlertStation,
-
-                    line:
-                        destinationAlertLine,
-
-                    alertStops:
-                        selectedAlarmStops
-                }
+                "Destination Alert Cancelled"
             );
 
         }
