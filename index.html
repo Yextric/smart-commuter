@@ -45,7 +45,7 @@
                 </h1>
 
                 <p>
-                    Smarter journeys, together.
+                    Daily route disruption alerts.
                 </p>
 
             </div>
@@ -53,11 +53,24 @@
         </div>
 
 
-        <div class="location-status">
+        <div class="topbar-actions">
 
-            <span class="status-dot"></span>
+            <div class="location-status">
 
-            Singapore
+                <span class="status-dot"></span>
+
+                Singapore
+
+            </div>
+
+            <a
+                class="settings-link"
+                href="settings.html"
+                aria-label="Open settings"
+                title="Settings"
+            >
+                ⚙
+            </a>
 
         </div>
 
@@ -77,19 +90,19 @@
             <div class="hero-text">
 
                 <span class="eyebrow">
-                    SMART COMMUTER COMPANION
+                    DAILY COMMUTER COMPANION
                 </span>
 
 
                 <h2>
-                    Meet halfway.<br>
-                    <span>Travel together.</span>
+                    Know before your<br>
+                    <span>usual route.</span>
                 </h2>
 
 
                 <p>
-                    Find the best place to meet your friend before
-                    continuing the journey together.
+                    Save your regular routes, choose when you travel, and get
+                    notified early when LTA reports a public transport delay or breakdown.
                 </p>
 
             </div>
@@ -106,7 +119,7 @@
                 <div class="person person-you">
 
                     <span>
-                        YOU
+                        HOME
                     </span>
 
                 </div>
@@ -115,7 +128,7 @@
                 <div class="person person-friend">
 
                     <span>
-                        FRIEND
+                        WORK
                     </span>
 
                 </div>
@@ -150,12 +163,12 @@
                 <div>
 
                     <span class="section-label">
-                        PLAN YOUR JOURNEY
+                    DAILY ROUTE ALERT
                     </span>
 
 
                     <h3>
-                        Where are you both heading?
+                        Set up your regular commute
                     </h3>
 
                 </div>
@@ -185,15 +198,22 @@
                     <div class="input-content">
 
                         <label for="userLocation">
-                            YOU ARE HERE
+                            START LOCATION
                         </label>
 
 
                         <input
                             type="text"
                             id="userLocation"
-                            placeholder="e.g. Sengkang"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Sengkang, NYP, or Orchard Road"
+                            autocomplete="off"
                         >
+
+                        <div
+                            id="userLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
 
                     </div>
 
@@ -213,15 +233,22 @@
                     <div class="input-content">
 
                         <label for="friendLocation">
-                            YOUR FRIEND
+                            END LOCATION
                         </label>
 
 
                         <input
                             type="text"
                             id="friendLocation"
-                            placeholder="e.g. Serangoon"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Raffles Place, school, or office"
+                            autocomplete="off"
                         >
+
+                        <div
+                            id="friendLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
 
                     </div>
 
@@ -241,14 +268,14 @@
                     <div class="input-content">
 
                         <label for="destination">
-                            DESTINATION
+                            ROUTE NAME
                         </label>
 
 
                         <input
                             type="text"
                             id="destination"
-                            placeholder="e.g. Outram Park"
+                            placeholder="e.g. Morning commute"
                         >
 
                     </div>
@@ -260,6 +287,242 @@
 
 
 
+            <!-- COMMUTE ALERT SETTINGS -->
+            <div class="commute-settings">
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            SCHEDULE
+                        </span>
+
+
+                        <h3>
+                            When should we check this route?
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="commute-controls">
+
+                    <div class="commute-field">
+                        <label for="commuteTime">
+                            TRAVEL TIME
+                        </label>
+
+                        <input
+                            type="time"
+                            id="commuteTime"
+                            value="08:00"
+                        >
+                    </div>
+
+                    <div class="commute-field">
+                        <label for="notifyBefore">
+                            NOTIFY BEFORE
+                        </label>
+
+                        <select id="notifyBefore">
+                            <option value="5">
+                                5 minutes before
+                            </option>
+                            <option value="10">
+                                10 minutes before
+                            </option>
+                            <option value="20" selected>
+                                20 minutes before
+                            </option>
+                            <option value="30">
+                                30 minutes before
+                            </option>
+                            <option value="45">
+                                45 minutes before
+                            </option>
+                            <option value="60">
+                                1 hour before
+                            </option>
+                            <option value="custom">
+                                Custom time
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="commute-field">
+                        <label for="routePriority">
+                            IF DISRUPTED
+                        </label>
+
+                        <select id="routePriority">
+                            <option value="fastest" selected>
+                                Suggest fastest alternative
+                            </option>
+                            <option value="least-transfer">
+                                Suggest fewer transfers
+                            </option>
+                            <option value="bus-friendly">
+                                Prefer bus backup routes
+                            </option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div
+                    id="customNotifyField"
+                    class="commute-field custom-notify-field hidden"
+                >
+                    <label for="customNotifyBefore">
+                        CUSTOM NOTICE
+                    </label>
+
+                    <input
+                        type="number"
+                        id="customNotifyBefore"
+                        min="1"
+                        max="180"
+                        value="75"
+                    >
+                </div>
+
+            </div>
+
+
+            <!-- SAVE ROUTE BUTTON -->
+            <button
+                id="findButton"
+                class="find-button"
+                type="button"
+            >
+
+                <span>
+                    Save route alert
+                </span>
+
+
+                <span class="button-arrow">
+                    →
+                </span>
+
+            </button>
+
+
+            <!-- SAVED ROUTES PREVIEW -->
+            <div class="saved-routes-panel">
+
+                <div class="preference-heading saved-routes-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            SAVED ROUTES
+                        </span>
+
+
+                        <h3>
+                            Multiple commutes, different times
+                        </h3>
+
+                    </div>
+
+                    <button
+                        id="editRoutesBtn"
+                        class="edit-routes-btn"
+                        type="button"
+                    >
+                        Edit
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="savedRoutesList"
+                    class="saved-routes-list"
+                >
+
+                    <article class="saved-route-item">
+
+                        <button
+                            class="route-order-handle"
+                            type="button"
+                            aria-label="Move route"
+                            title="Move route"
+                        >
+                            ⋮⋮
+                        </button>
+
+                        <div class="saved-route-copy">
+
+                            <strong>
+                                Morning commute
+                            </strong>
+
+                            <span>
+                                Sengkang to Raffles Place - 8:00 AM - alert 20 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill">
+                            Monitoring
+                        </span>
+
+                        <button
+                            class="delete-route-btn"
+                            type="button"
+                        >
+                            Delete
+                        </button>
+
+                    </article>
+
+
+                    <article class="saved-route-item">
+
+                        <button
+                            class="route-order-handle"
+                            type="button"
+                            aria-label="Move route"
+                            title="Move route"
+                        >
+                            ⋮⋮
+                        </button>
+
+                        <div class="saved-route-copy">
+
+                            <strong>
+                                Evening commute
+                            </strong>
+
+                            <span>
+                                Raffles Place to Sengkang - 6:15 PM - alert 30 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill quiet">
+                            No incident
+                        </span>
+
+                        <button
+                            class="delete-route-btn"
+                            type="button"
+                        >
+                            Delete
+                        </button>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+
             <!-- MEETING PREFERENCE -->
             <div class="meeting-preference">
 
@@ -269,12 +532,12 @@
                     <div>
 
                         <span class="section-label">
-                            MEETING PREFERENCE
+                            OPTIONAL FRIEND FEATURE
                         </span>
 
 
                         <h3>
-                            Where would you like to meet?
+                            Meeting point preference
                         </h3>
 
                     </div>
@@ -314,7 +577,7 @@
 
 
                                 <span>
-                                    Meet as early as possible along both routes.
+                                    Keep this for trips where you want to meet someone first.
                                 </span>
 
                             </div>
@@ -357,7 +620,7 @@
 
 
                                 <span>
-                                    Meet where both can change lines before travelling together.
+                                    Meet where both routes can change lines before travelling together.
                                 </span>
 
                             </div>
@@ -380,13 +643,13 @@
 
             <!-- FIND JOURNEY BUTTON -->
             <button
-                id="findButton"
-                class="find-button"
+                id="legacyFindButton"
+                class="find-button legacy-hidden"
                 type="button"
             >
 
                 <span>
-                    Find our meeting point
+                    Save route alert
                 </span>
 
 
@@ -408,12 +671,12 @@
                     <div>
 
                         <span class="section-label">
-                            SHARE YOUR JOURNEY
+                            ADDITIONAL FEATURE
                         </span>
 
 
                         <h3>
-                            Connect with your friend
+                            Share journey with another person
                         </h3>
 
 
@@ -544,6 +807,78 @@
             </div>
 
 
+            <!-- SAVED ROUTES PREVIEW -->
+            <div class="saved-routes-panel legacy-hidden">
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            SAVED ROUTES
+                        </span>
+
+
+                        <h3>
+                            Multiple commutes, different times
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="legacySavedRoutesList"
+                    class="saved-routes-list"
+                >
+
+                    <article class="saved-route-item">
+
+                        <div>
+
+                            <strong>
+                                Morning commute
+                            </strong>
+
+                            <span>
+                                Sengkang MRT to Raffles Place - 8:00 AM - alert 20 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill">
+                            Monitoring
+                        </span>
+
+                    </article>
+
+
+                    <article class="saved-route-item">
+
+                        <div>
+
+                            <strong>
+                                Evening commute
+                            </strong>
+
+                            <span>
+                                Raffles Place to Sengkang MRT - 6:15 PM - alert 30 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill quiet">
+                            No incident
+                        </span>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+
 
 
             <!-- ERROR MESSAGE -->
@@ -552,6 +887,88 @@
                 class="error-message"
             ></div>
 
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- INCIDENT ALERTS AND ALTERNATIVES -->
+        <!-- ================================================= -->
+
+        <section class="incident-section">
+
+            <div class="incident-card urgent">
+
+                <div>
+
+                    <span class="section-label">
+                        LTA INCIDENT WATCH
+                    </span>
+
+                    <h3>
+                        Public transport delay detected
+                    </h3>
+
+                    <p>
+                        This is sample disruption data for the prototype. Later, this can be powered by the LTA API and refreshed before each saved trip.
+                    </p>
+
+                </div>
+
+                <span class="incident-time">
+                    Check 20 min before
+                </span>
+
+            </div>
+
+
+            <div class="alternative-routes">
+
+                <div class="preference-heading">
+
+                    <span class="section-label">
+                        GOOGLE MAPS ALTERNATIVES
+                    </span>
+
+                    <h3>
+                        Suggested backup routes
+                    </h3>
+
+                </div>
+
+
+                <div class="alternative-grid">
+
+                    <article class="alternative-card">
+                        <strong>
+                            Circle Line + Downtown Line
+                        </strong>
+                        <span>
+                            Similar travel time, avoids affected rail segment.
+                        </span>
+                    </article>
+
+                    <article class="alternative-card">
+                        <strong>
+                            Express bus connection
+                        </strong>
+                        <span>
+                            Fewer train transfers, better for elderly-friendly mode.
+                        </span>
+                    </article>
+
+                    <article class="alternative-card">
+                        <strong>
+                            Leave 15 minutes later
+                        </strong>
+                        <span>
+                            Use when the disruption is expected to clear soon.
+                        </span>
+                    </article>
+
+                </div>
+
+            </div>
 
         </section>
 
@@ -894,7 +1311,7 @@
 
         </section>
 <!-- ================================================= -->
-<!-- DESTINATION ALARM -->
+<!-- ROUTE ALERT -->
 <!-- ================================================= -->
 
 <section class="destination-alarm">
@@ -904,15 +1321,15 @@
         <div>
 
             <span class="section-label">
-                DESTINATION ALERT
+                EXTRA ALERT
             </span>
 
             <h3>
-                Don't miss your stop
+                Destination stop reminder
             </h3>
 
             <p>
-                Enter your destination stop and get alerted before you arrive.
+                Keep this as an additional reminder after the main route disruption alert.
             </p>
 
         </div>
@@ -1027,7 +1444,7 @@
         class="set-alarm-btn"
         type="button"
     >
-        Set Destination Alert
+        Set Stop Reminder
     </button>
 
     <button

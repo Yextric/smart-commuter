@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Settings - CommuteTogether</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+</head>
+
+<body>
+
+    <header class="topbar">
+
+        <a
+            class="back-link"
+            href="index.html"
+        >
+            ← Back
+        </a>
+
+        <div class="brand settings-brand">
+
+            <div class="brand-icon">
+                ⚙
+            </div>
+
+            <div>
+
+                <h1>
+                    Settings
+                </h1>
+
+                <p>
+                    Adjust how the app looks and behaves.
+                </p>
+
+            </div>
+
+        </div>
+
+    </header>
+
+
+    <main class="container settings-container">
+
+        <section class="settings-page-card">
+
+            <div class="settings-copy">
+
+                <span class="section-label">
+                    ACCESSIBILITY
+                </span>
+
+                <h2>
+                    Elderly-friendly mode
+                </h2>
+
+                <p>
+                    Uses bigger text, clearer spacing, and hides secondary journey-sharing controls on the main page.
+                </p>
+
+            </div>
+
+            <label class="toggle-row settings-toggle">
+                <input
+                    type="checkbox"
+                    id="elderlyModeToggle"
+                >
+                <span class="toggle-track"></span>
+                <span>
+                    Turn on elderly-friendly mode
+                </span>
+            </label>
+
+        </section>
+
+    </main>
+
+    <script>
+        const elderlyModeToggle =
+            document.getElementById(
+                "elderlyModeToggle"
+            );
+
+        function setElderlyMode(enabled) {
+            document.body.classList.toggle(
+                "elderly-mode",
+                enabled
+            );
+
+            localStorage.setItem(
+                "elderlyMode",
+                enabled ? "true" : "false"
+            );
+        }
+
+        const savedPreference =
+            localStorage.getItem(
+                "elderlyMode"
+            ) === "true";
+
+        elderlyModeToggle.checked =
+            savedPreference;
+
+        setElderlyMode(
+            savedPreference
+        );
+
+        elderlyModeToggle.addEventListener(
+            "change",
+            () => {
+                setElderlyMode(
+                    elderlyModeToggle.checked
+                );
+            }
+        );
+    </script>
+
+</body>
+
+</html>

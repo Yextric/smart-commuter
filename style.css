@@ -18,7 +18,8 @@ body {
 }
 
 button,
-input {
+input,
+select {
     font-family: inherit;
 }
 
@@ -418,6 +419,53 @@ button {
 .input-content {
     min-width: 0;
     flex: 1;
+    position: relative;
+}
+
+.topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.settings-link {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e4e9e5;
+    border-radius: 50%;
+    background: white;
+    color: #536158;
+    text-decoration: none;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.settings-link:hover {
+    border-color: #78a98b;
+    color: #173b2a;
+}
+
+.back-link {
+    padding: 9px 13px;
+    border: 1px solid #e4e9e5;
+    border-radius: 999px;
+    background: white;
+    color: #536158;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.back-link:hover {
+    border-color: #78a98b;
+    color: #173b2a;
+}
+
+.settings-brand {
+    margin-left: auto;
 }
 
 .input-content label {
@@ -451,12 +499,423 @@ button {
     color: #b4bdb7;
 }
 
+.location-suggestions {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    right: 0;
+    z-index: 50;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 8px;
+    border: 1px solid #d9e3dd;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 18px 38px rgba(32, 55, 42, 0.16);
+}
+
+.location-suggestion {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 11px 10px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #243129;
+    text-align: left;
+}
+
+.location-suggestion:hover,
+.location-suggestion:focus {
+    background: #f1f7f3;
+    outline: none;
+}
+
+.suggestion-icon {
+    width: 26px;
+    height: 26px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: #e5f1e9;
+    color: #3f7d59;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.suggestion-text {
+    min-width: 0;
+}
+
+.suggestion-title,
+.suggestion-address {
+    display: block;
+}
+
+.suggestion-title {
+    color: #243129;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.suggestion-address {
+    margin-top: 3px;
+    color: #7a877f;
+    font-size: 11px;
+    line-height: 1.35;
+}
+
+.location-suggestion.loading,
+.location-suggestion.empty {
+    cursor: default;
+}
+
 /* ================================
    MEETING PREFERENCE
 ================================ */
 
 .meeting-preference {
     margin-top: 24px;
+}
+
+.commute-settings,
+.saved-routes-panel,
+.incident-section {
+    margin-top: 24px;
+}
+
+.commute-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.commute-field {
+    min-height: 82px;
+    padding: 16px;
+    border: 1px solid #e1e7e3;
+    border-radius: 16px;
+    background: #fafcfb;
+}
+
+.commute-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: #8b9690;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.commute-field input,
+.commute-field select {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #18251e;
+    font-size: 15px;
+}
+
+.custom-notify-field {
+    max-width: 260px;
+    margin-top: 14px;
+}
+
+.settings-container {
+    max-width: 760px;
+}
+
+.settings-page-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px;
+    border: 1px solid #e3e9e5;
+    border-radius: 20px;
+    background: white;
+    box-shadow: 0 12px 40px rgba(27, 55, 39, 0.06);
+}
+
+.settings-page-card h2 {
+    margin-top: 4px;
+    font-size: 26px;
+    letter-spacing: -0.5px;
+}
+
+.settings-toggle {
+    padding: 14px;
+    border: 1px solid #e1e7e3;
+    border-radius: 14px;
+    background: #fafcfb;
+}
+
+.app-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px;
+    border: 1px solid #e1e7e3;
+    border-radius: 16px;
+    background: #fafcfb;
+}
+
+.settings-copy h3 {
+    margin-top: 4px;
+    font-size: 16px;
+}
+
+.settings-copy p {
+    margin-top: 6px;
+    color: #7a877f;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #243129;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.toggle-row input {
+    position: absolute;
+    opacity: 0;
+}
+
+.toggle-track {
+    width: 46px;
+    height: 26px;
+    padding: 3px;
+    border-radius: 999px;
+    background: #dfe7e2;
+    transition: 0.2s ease;
+}
+
+.toggle-track::before {
+    content: "";
+    display: block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.16);
+    transition: 0.2s ease;
+}
+
+.toggle-row input:checked + .toggle-track {
+    background: #4d8a67;
+}
+
+.toggle-row input:checked + .toggle-track::before {
+    transform: translateX(20px);
+}
+
+.saved-routes-panel {
+    padding-top: 4px;
+}
+
+.saved-routes-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.edit-routes-btn {
+    flex-shrink: 0;
+    padding: 8px 13px;
+    border: 1px solid #d8e1dc;
+    border-radius: 10px;
+    background: white;
+    color: #3f594b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.edit-routes-btn.active {
+    border-color: #4d8a67;
+    background: #e5f1e9;
+    color: #2f6b49;
+}
+
+.saved-routes-list {
+    display: grid;
+    gap: 10px;
+}
+
+.saved-route-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px;
+    border: 1px solid #e1e7e3;
+    border-radius: 14px;
+    background: #fafcfb;
+}
+
+.saved-route-item:focus-within {
+    border-color: #78a98b;
+}
+
+.saved-route-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.route-order-handle {
+    width: 28px;
+    height: 42px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 9px;
+    background: #edf3ef;
+    color: #829088;
+    font-size: 18px;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.route-order-handle:hover {
+    background: #e0ece5;
+    color: #3f7d59;
+}
+
+.delete-route-btn {
+    display: none;
+    flex-shrink: 0;
+    padding: 8px 10px;
+    border: 1px solid #f0c8c8;
+    border-radius: 9px;
+    background: #fff6f6;
+    color: #9b3030;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.saved-routes-list.editing .delete-route-btn {
+    display: block;
+}
+
+.legacy-hidden {
+    display: none !important;
+}
+
+.saved-route-item strong,
+.saved-route-item span {
+    display: block;
+}
+
+.saved-route-item strong {
+    color: #243129;
+    font-size: 14px;
+}
+
+.saved-route-item span {
+    margin-top: 4px;
+    color: #7a877f;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.route-status-pill,
+.incident-time {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    margin-top: 0;
+    padding: 7px 10px;
+    border-radius: 999px;
+    background: #e5f1e9;
+    color: #2f6b49;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.route-status-pill.quiet {
+    background: #eef2f0;
+    color: #65736b;
+}
+
+.incident-section {
+    display: grid;
+    grid-template-columns: 0.85fr 1.15fr;
+    gap: 18px;
+}
+
+.incident-card,
+.alternative-routes {
+    padding: 22px;
+    border: 1px solid #e1e7e3;
+    border-radius: 16px;
+    background: white;
+    box-shadow: 0 10px 30px rgba(32, 55, 42, 0.06);
+}
+
+.incident-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 22px;
+}
+
+.incident-card.urgent {
+    border-color: #f1c9a6;
+    background: #fff8f1;
+}
+
+.incident-card h3,
+.alternative-routes h3 {
+    margin: 4px 0 8px;
+    font-size: 20px;
+}
+
+.incident-card p {
+    color: #6f766f;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.alternative-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.alternative-card {
+    min-height: 120px;
+    padding: 14px;
+    border: 1px solid #e5e9e6;
+    border-radius: 12px;
+    background: #fafcfb;
+}
+
+.alternative-card strong,
+.alternative-card span {
+    display: block;
+}
+
+.alternative-card strong {
+    color: #243129;
+    font-size: 14px;
+}
+
+.alternative-card span {
+    margin-top: 8px;
+    color: #7a877f;
+    font-size: 12px;
+    line-height: 1.45;
 }
 
 .preference-heading {
@@ -1080,6 +1539,76 @@ footer {
     .meeting-content {
         gap: 13px;
     }
+}
+
+@media (max-width: 900px) {
+    .commute-controls,
+    .incident-section,
+    .alternative-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .app-settings,
+    .saved-route-item,
+    .settings-page-card {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .toggle-row {
+        white-space: normal;
+    }
+}
+
+body.elderly-mode {
+    font-size: 18px;
+}
+
+body.elderly-mode .container {
+    max-width: 980px;
+}
+
+body.elderly-mode .brand p,
+body.elderly-mode .eyebrow,
+body.elderly-mode .section-label,
+body.elderly-mode .input-content label,
+body.elderly-mode .commute-field label {
+    font-size: 13px;
+    letter-spacing: 0.6px;
+}
+
+body.elderly-mode .hero h2 {
+    font-size: clamp(38px, 5vw, 58px);
+    letter-spacing: 0;
+}
+
+body.elderly-mode .hero-text p,
+body.elderly-mode .settings-copy p,
+body.elderly-mode .incident-card p,
+body.elderly-mode .alternative-card span,
+body.elderly-mode .saved-route-item span,
+body.elderly-mode .preference-text span {
+    font-size: 16px;
+}
+
+body.elderly-mode .input-content input,
+body.elderly-mode .commute-field input,
+body.elderly-mode .commute-field select,
+body.elderly-mode .find-button,
+body.elderly-mode .set-alarm-btn,
+body.elderly-mode .cancel-alarm-btn {
+    font-size: 18px;
+}
+
+body.elderly-mode .meeting-preference,
+body.elderly-mode .journey-code-section,
+body.elderly-mode .live-map-section {
+    display: none;
+}
+
+body.elderly-mode .route-status-pill,
+body.elderly-mode .incident-time {
+    font-size: 14px;
 }
 
 .route-summary {
