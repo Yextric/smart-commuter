@@ -2363,6 +2363,157 @@ async function searchOneMapLocation(
     }
 }
 
+async function searchOneMapLocationSuggestions(
+    searchValue
+) {
+
+    if (
+        !searchValue ||
+        searchValue.trim() === ""
+    ) {
+        return [];
+    }
+
+    try {
+
+        const url =
+            `http://localhost:3000/api/search` +
+            `?search=${encodeURIComponent(
+                searchValue
+            )}`;
+
+        const response =
+            await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(
+                "Backend search failed"
+            );
+        }
+
+        const data =
+            await response.json();
+
+        if (
+            !data.results ||
+            data.results.length === 0
+        ) {
+            return getFallbackLocationSuggestions(
+                searchValue
+            );
+        }
+
+        const oneMapSuggestions =
+            data.results
+            .slice(0, 5)
+            .map(result => ({
+                name:
+                    result.SEARCHVAL ||
+                    result.BUILDING ||
+                    result.ROAD_NAME ||
+                    result.ADDRESS,
+
+                address:
+                    result.ADDRESS,
+
+                latitude:
+                    parseFloat(
+                        result.LATITUDE
+                    ),
+
+                longitude:
+                    parseFloat(
+                        result.LONGITUDE
+                    )
+            }));
+
+        return oneMapSuggestions.length > 0
+            ? oneMapSuggestions
+            : getFallbackLocationSuggestions(
+                searchValue
+            );
+
+    } catch (error) {
+
+        console.error(
+            "Location suggestion error:",
+            error
+        );
+
+        return getFallbackLocationSuggestions(
+            searchValue
+        );
+    }
+}
+
+const fallbackLocations = [
+    "Ang Mo Kio MRT",
+    "Bishan MRT",
+    "Bugis MRT",
+    "Buona Vista MRT",
+    "Chinatown MRT",
+    "City Hall MRT",
+    "Dhoby Ghaut MRT",
+    "HarbourFront MRT",
+    "Hougang MRT",
+    "Jurong East MRT",
+    "Little India MRT",
+    "Orchard MRT",
+    "Outram Park MRT",
+    "Paya Lebar MRT",
+    "Raffles Place MRT",
+    "Serangoon MRT",
+    "Sengkang MRT",
+    "Tampines MRT",
+    "Toa Payoh MRT",
+    "Woodlands MRT",
+    "Yishun MRT",
+    "Nanyang Polytechnic",
+    "Singapore Polytechnic",
+    "National University of Singapore",
+    "Singapore Management University",
+    "Changi Airport",
+    "VivoCity",
+    "Suntec City",
+    "Marina Bay Sands",
+    "Raffles Hospital",
+    "Singapore General Hospital"
+];
+
+function getFallbackLocationSuggestions(
+    searchValue
+) {
+
+    const query =
+        String(searchValue || "")
+            .trim()
+            .toLowerCase();
+
+    if (query.length < 2) {
+        return [];
+    }
+
+    return fallbackLocations
+        .filter(location =>
+            location.toLowerCase()
+                .includes(query)
+        )
+        .slice(0, 5)
+        .map(location => ({
+            name:
+                location,
+
+            address:
+                "Singapore",
+
+            latitude:
+                "",
+
+            longitude:
+                ""
+        }));
+}
+
 
 // ===============================
 // GET PUBLIC TRANSPORT ROUTE
@@ -5301,3 +5452,808 @@ if (cancelDestinationAlarmBtn) {
     );
 
 }
+
+
+// =====================================================
+// DAILY COMMUTE ROUTE ALERT PROTOTYPE
+// =====================================================
+
+const commuterRouteFormButton =
+    document.getElementById(
+        "findButton"
+    );
+
+const commuterStartInput =
+    document.getElementById(
+        "userLocation"
+    );
+
+const commuterEndInput =
+    document.getElementById(
+        "friendLocation"
+    );
+
+const commuterRouteNameInput =
+    document.getElementById(
+        "destination"
+    );
+
+const commuteTimeInput =
+    document.getElementById(
+        "commuteTime"
+    );
+
+const notifyBeforeSelect =
+    document.getElementById(
+        "notifyBefore"
+    );
+
+const customNotifyField =
+    document.getElementById(
+        "customNotifyField"
+    );
+
+const customNotifyBeforeInput =
+    document.getElementById(
+        "customNotifyBefore"
+    );
+
+const routePrioritySelect =
+    document.getElementById(
+        "routePriority"
+    );
+
+const savedRoutesList =
+    document.getElementById(
+        "savedRoutesList"
+    );
+
+const editRoutesBtn =
+    document.getElementById(
+        "editRoutesBtn"
+    );
+
+const elderlyModeToggle =
+    document.getElementById(
+        "elderlyModeToggle"
+    );
+
+const incidentTimeLabel =
+    document.querySelector(
+        ".incident-time"
+    );
+
+function formatCommuteTime(timeValue) {
+
+    if (!timeValue) {
+        return "time not set";
+    }
+
+    const [
+        hourText,
+        minuteText
+    ] = timeValue.split(":");
+
+    const hour =
+        Number(hourText);
+
+    const suffix =
+        hour >= 12
+            ? "PM"
+            : "AM";
+
+    const displayHour =
+        hour % 12 || 12;
+
+    return `${displayHour}:${minuteText} ${suffix}`;
+}
+
+function getRoutePriorityLabel(value) {
+
+    const labels = {
+        fastest:
+            "fastest alternative",
+        "least-transfer":
+            "fewer transfers",
+        "bus-friendly":
+            "bus backup routes"
+    };
+
+    return labels[value] || labels.fastest;
+}
+
+function getSelectedNotifyMinutes() {
+
+    if (
+        notifyBeforeSelect &&
+        notifyBeforeSelect.value === "custom"
+    ) {
+
+        const customValue =
+            customNotifyBeforeInput
+                ? Number(
+                    customNotifyBeforeInput.value
+                )
+                : 0;
+
+        return customValue > 0
+            ? customValue
+            : 60;
+    }
+
+    return notifyBeforeSelect
+        ? Number(
+            notifyBeforeSelect.value
+        )
+        : 20;
+}
+
+function escapeHtml(value) {
+
+    return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function showCommuterMessage(message) {
+
+    const errorMessage =
+        document.getElementById(
+            "errorMessage"
+        );
+
+    if (!errorMessage) {
+        return;
+    }
+
+    errorMessage.textContent =
+        message;
+
+    errorMessage.style.display =
+        "block";
+}
+
+function addSavedCommuterRoute() {
+
+    if (
+        !commuterStartInput ||
+        !commuterEndInput ||
+        !savedRoutesList
+    ) {
+        return;
+    }
+
+    const start =
+        commuterStartInput.value.trim();
+
+    const end =
+        commuterEndInput.value.trim();
+
+    if (!start || !end) {
+
+        showCommuterMessage(
+            "Please enter a start and end location for this daily route."
+        );
+
+        return;
+    }
+
+    const routeName =
+        commuterRouteNameInput &&
+        commuterRouteNameInput.value.trim()
+            ? commuterRouteNameInput.value.trim()
+            : "Daily commute";
+
+    const notifyMinutes =
+        getSelectedNotifyMinutes();
+
+    const travelTime =
+        commuteTimeInput
+            ? formatCommuteTime(
+                commuteTimeInput.value
+            )
+            : "time not set";
+
+    const priority =
+        routePrioritySelect
+            ? getRoutePriorityLabel(
+                routePrioritySelect.value
+            )
+            : "fastest alternative";
+
+    const routeItem =
+        document.createElement(
+            "article"
+        );
+
+    routeItem.className =
+        "saved-route-item";
+
+    routeItem.innerHTML = `
+        <button
+            class="route-order-handle"
+            type="button"
+            aria-label="Move route"
+            title="Move route"
+        >⋮⋮</button>
+        <div class="saved-route-copy">
+            <strong>${escapeHtml(routeName)}</strong>
+            <span>${escapeHtml(start)} to ${escapeHtml(end)} - ${escapeHtml(travelTime)} - alert ${escapeHtml(notifyMinutes)} min before - ${escapeHtml(priority)}</span>
+        </div>
+        <span class="route-status-pill">Monitoring</span>
+        <button
+            class="delete-route-btn"
+            type="button"
+        >Delete</button>
+    `;
+
+    savedRoutesList.prepend(
+        routeItem
+    );
+
+    if (incidentTimeLabel) {
+        incidentTimeLabel.textContent =
+            `Check ${notifyMinutes} min before`;
+    }
+
+    showCommuterMessage(
+        "Route alert saved. LTA incident checks and Google Maps alternatives can be connected when the APIs are linked."
+    );
+}
+
+if (commuterRouteFormButton) {
+
+    commuterRouteFormButton.addEventListener(
+        "click",
+        addSavedCommuterRoute
+    );
+}
+
+if (notifyBeforeSelect && customNotifyField) {
+
+    notifyBeforeSelect.addEventListener(
+        "change",
+        () => {
+
+            customNotifyField.classList.toggle(
+                "hidden",
+                notifyBeforeSelect.value !==
+                    "custom"
+            );
+
+        }
+    );
+}
+
+if (editRoutesBtn && savedRoutesList) {
+
+    editRoutesBtn.addEventListener(
+        "click",
+        () => {
+
+            const isEditing =
+                savedRoutesList.classList.toggle(
+                    "editing"
+                );
+
+            editRoutesBtn.classList.toggle(
+                "active",
+                isEditing
+            );
+
+            editRoutesBtn.textContent =
+                isEditing ? "Done" : "Edit";
+
+        }
+    );
+}
+
+if (savedRoutesList) {
+
+    savedRoutesList.addEventListener(
+        "click",
+        event => {
+
+            const deleteButton =
+                event.target.closest(
+                    ".delete-route-btn"
+                );
+
+            if (deleteButton) {
+
+                const route =
+                    deleteButton.closest(
+                        ".saved-route-item"
+                    );
+
+                if (route) {
+                    route.remove();
+                }
+
+                return;
+            }
+
+            const handle =
+                event.target.closest(
+                    ".route-order-handle"
+                );
+
+            if (!handle) {
+                return;
+            }
+
+            const route =
+                handle.closest(
+                    ".saved-route-item"
+                );
+
+            if (!route) {
+                return;
+            }
+
+            const nextRoute =
+                route.nextElementSibling;
+
+            if (nextRoute) {
+
+                savedRoutesList.insertBefore(
+                    nextRoute,
+                    route
+                );
+
+            } else {
+
+                savedRoutesList.prepend(
+                    route
+                );
+
+            }
+
+        }
+    );
+}
+
+function setElderlyMode(enabled) {
+
+    document.body.classList.toggle(
+        "elderly-mode",
+        enabled
+    );
+
+    localStorage.setItem(
+        "elderlyMode",
+        enabled ? "true" : "false"
+    );
+}
+
+const savedElderlyPreference =
+    localStorage.getItem(
+        "elderlyMode"
+    ) === "true";
+
+setElderlyMode(
+    savedElderlyPreference
+);
+
+if (elderlyModeToggle) {
+
+    elderlyModeToggle.checked =
+        savedElderlyPreference;
+
+    elderlyModeToggle.addEventListener(
+        "change",
+        () => {
+
+            setElderlyMode(
+                elderlyModeToggle.checked
+            );
+
+        }
+    );
+}
+
+
+// =====================================================
+// LOCATION INPUT DROPDOWNS
+// =====================================================
+
+const currentLocationLabels =
+    new Map();
+
+function getCurrentLocationLabel(inputId) {
+
+    return currentLocationLabels.get(
+        inputId
+    ) || "Your location";
+}
+
+function setCurrentLocationLabel(
+    inputId,
+    label
+) {
+
+    currentLocationLabels.set(
+        inputId,
+        label
+    );
+}
+
+function renderLocationSuggestions(
+    input,
+    menu,
+    suggestions,
+    state = "ready"
+) {
+
+    if (!input || !menu) {
+        return;
+    }
+
+    const currentLabel =
+        getCurrentLocationLabel(
+            input.id
+        );
+
+    let html = `
+        <button
+            type="button"
+            class="location-suggestion"
+            data-kind="current"
+        >
+            <span class="suggestion-icon">GPS</span>
+            <span class="suggestion-text">
+                <span class="suggestion-title">${escapeHtml(currentLabel)}</span>
+                <span class="suggestion-address">Use your current device location</span>
+            </span>
+        </button>
+    `;
+
+    if (state === "loading") {
+
+        html += `
+            <button
+                type="button"
+                class="location-suggestion loading"
+                disabled
+            >
+                <span class="suggestion-icon">...</span>
+                <span class="suggestion-text">
+                    <span class="suggestion-title">Searching nearby places</span>
+                    <span class="suggestion-address">Finding matching locations...</span>
+                </span>
+            </button>
+        `;
+
+    } else if (
+        input.value.trim().length >= 2 &&
+        suggestions.length === 0
+    ) {
+
+        html += `
+            <button
+                type="button"
+                class="location-suggestion empty"
+                disabled
+            >
+                <span class="suggestion-icon">?</span>
+                <span class="suggestion-text">
+                    <span class="suggestion-title">No nearby matches found</span>
+                    <span class="suggestion-address">Try a station, mall, road, or building name.</span>
+                </span>
+            </button>
+        `;
+
+    } else {
+
+        suggestions.forEach(
+            (suggestion, index) => {
+
+                html += `
+                    <button
+                        type="button"
+                        class="location-suggestion"
+                        data-kind="place"
+                        data-index="${index}"
+                    >
+                        <span class="suggestion-icon">PIN</span>
+                        <span class="suggestion-text">
+                            <span class="suggestion-title">${escapeHtml(suggestion.name || "Location")}</span>
+                            <span class="suggestion-address">${escapeHtml(suggestion.address || "")}</span>
+                        </span>
+                    </button>
+                `;
+
+            }
+        );
+    }
+
+    menu.innerHTML =
+        html;
+
+    menu.classList.remove(
+        "hidden"
+    );
+}
+
+function useBrowserLocation(
+    input,
+    menu
+) {
+
+    if (!navigator.geolocation) {
+
+        input.value =
+            "Your location";
+
+        if (menu) {
+            menu.classList.add(
+                "hidden"
+            );
+        }
+
+        showCommuterMessage(
+            "Current location is not supported by this browser."
+        );
+
+        return;
+    }
+
+    input.value =
+        "Getting your location...";
+
+    navigator.geolocation.getCurrentPosition(
+        position => {
+
+            const label =
+                `Your location (${position.coords.latitude.toFixed(4)}, ${position.coords.longitude.toFixed(4)})`;
+
+            setCurrentLocationLabel(
+                input.id,
+                label
+            );
+
+            input.value =
+                label;
+
+            input.dataset.latitude =
+                position.coords.latitude;
+
+            input.dataset.longitude =
+                position.coords.longitude;
+
+            if (menu) {
+                menu.classList.add(
+                    "hidden"
+                );
+            }
+
+        },
+        () => {
+
+            input.value =
+                "Your location";
+
+            if (menu) {
+                menu.classList.add(
+                    "hidden"
+                );
+            }
+
+            showCommuterMessage(
+                "Location permission was not allowed. You can still type a place manually."
+            );
+
+        },
+        {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 60000
+        }
+    );
+}
+
+function setupLocationDropdown(
+    inputId,
+    menuId
+) {
+
+    const input =
+        document.getElementById(
+            inputId
+        );
+
+    const menu =
+        document.getElementById(
+            menuId
+        );
+
+    if (!input || !menu) {
+        return;
+    }
+
+    let latestRequestId = 0;
+    let debounceTimer = null;
+    let currentSuggestions = [];
+
+    input.value =
+        "Your location";
+
+    setCurrentLocationLabel(
+        input.id,
+        "Your location"
+    );
+
+    input.addEventListener(
+        "focus",
+        () => {
+
+            renderLocationSuggestions(
+                input,
+                menu,
+                currentSuggestions
+            );
+
+        }
+    );
+
+    input.addEventListener(
+        "input",
+        () => {
+
+            input.dataset.latitude = "";
+            input.dataset.longitude = "";
+
+            const query =
+                input.value.trim();
+
+            clearTimeout(
+                debounceTimer
+            );
+
+            if (query.length < 2) {
+
+                currentSuggestions = [];
+
+                renderLocationSuggestions(
+                    input,
+                    menu,
+                    currentSuggestions
+                );
+
+                return;
+            }
+
+            renderLocationSuggestions(
+                input,
+                menu,
+                currentSuggestions,
+                "loading"
+            );
+
+            const requestId =
+                latestRequestId + 1;
+
+            latestRequestId =
+                requestId;
+
+            debounceTimer =
+                setTimeout(
+                    async () => {
+
+                        const suggestions =
+                            await searchOneMapLocationSuggestions(
+                                query
+                            );
+
+                        if (
+                            requestId !==
+                            latestRequestId
+                        ) {
+                            return;
+                        }
+
+                        currentSuggestions =
+                            suggestions;
+
+                        renderLocationSuggestions(
+                            input,
+                            menu,
+                            currentSuggestions
+                        );
+
+                    },
+                    250
+                );
+
+        }
+    );
+
+    menu.addEventListener(
+        "mousedown",
+        event => {
+
+            const button =
+                event.target.closest(
+                    ".location-suggestion"
+                );
+
+            if (
+                !button ||
+                button.disabled
+            ) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (
+                button.dataset.kind ===
+                "current"
+            ) {
+
+                useBrowserLocation(
+                    input,
+                    menu
+                );
+
+                return;
+            }
+
+            const suggestion =
+                currentSuggestions[
+                    Number(
+                        button.dataset.index
+                    )
+                ];
+
+            if (!suggestion) {
+                return;
+            }
+
+            input.value =
+                suggestion.name;
+
+            input.dataset.latitude =
+                suggestion.latitude;
+
+            input.dataset.longitude =
+                suggestion.longitude;
+
+            menu.classList.add(
+                "hidden"
+            );
+
+        }
+    );
+
+    input.addEventListener(
+        "blur",
+        () => {
+
+            setTimeout(
+                () => {
+
+                    menu.classList.add(
+                        "hidden"
+                    );
+
+                },
+                140
+            );
+
+        }
+    );
+}
+
+setupLocationDropdown(
+    "userLocation",
+    "userLocationSuggestions"
+);
+
+setupLocationDropdown(
+    "friendLocation",
+    "friendLocationSuggestions"
+);
