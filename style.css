@@ -17,6 +17,12 @@ body {
     min-height: 100vh;
 }
 
+body:not(.logged-in) .topbar,
+body:not(.logged-in) .container,
+body:not(.logged-in) footer {
+    display: none;
+}
+
 button,
 input,
 select {
@@ -25,6 +31,242 @@ select {
 
 button {
     cursor: pointer;
+}
+
+
+/* ================================
+   LOGIN
+================================ */
+
+.login-screen {
+    min-height: 100vh;
+    padding: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background:
+        radial-gradient(circle at top left, rgba(77, 138, 103, 0.22), transparent 34%),
+        linear-gradient(135deg, #eef6f1 0%, #f9fbfa 48%, #e7eef7 100%);
+}
+
+body.logged-in .login-screen {
+    display: none;
+}
+
+.login-shell {
+    width: min(1040px, 100%);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 0.85fr;
+    gap: 22px;
+    align-items: stretch;
+}
+
+.login-card,
+.login-preview {
+    border: 1px solid rgba(213, 226, 219, 0.9);
+    background: rgba(255, 255, 255, 0.92);
+    box-shadow: 0 24px 70px rgba(31, 55, 42, 0.14);
+}
+
+.login-card {
+    padding: 36px;
+    border-radius: 22px;
+}
+
+.login-brand-mark {
+    width: 52px;
+    height: 52px;
+    margin-bottom: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 16px;
+    background: #173b2a;
+    color: white;
+    font-size: 17px;
+    font-weight: 850;
+}
+
+.login-card h2 {
+    max-width: 430px;
+    margin-top: 4px;
+    color: #17231d;
+    font-size: clamp(34px, 5vw, 58px);
+    line-height: 1;
+    letter-spacing: -2px;
+}
+
+.login-card p {
+    max-width: 460px;
+    margin-top: 18px;
+    color: #65736b;
+    font-size: 15px;
+    line-height: 1.65;
+}
+
+.auth-mode-toggle {
+    margin-top: 24px;
+    padding: 5px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    border: 1px solid #dbe5df;
+    border-radius: 14px;
+    background: #edf3ef;
+}
+
+.auth-mode-btn {
+    padding: 11px 14px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #627067;
+    font-size: 13px;
+    font-weight: 850;
+}
+
+.auth-mode-btn.active {
+    background: white;
+    color: #173b2a;
+    box-shadow: 0 5px 14px rgba(31, 55, 42, 0.08);
+}
+
+.login-form {
+    margin-top: 28px;
+    display: grid;
+    gap: 10px;
+}
+
+.login-form label:not(.login-toggle-row) {
+    margin-top: 6px;
+    color: #8b9690;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.login-form input[type="text"],
+.login-form input[type="tel"] {
+    width: 100%;
+    padding: 15px 16px;
+    border: 1px solid #dbe5df;
+    border-radius: 14px;
+    background: #fafcfb;
+    color: #18251e;
+    font-size: 16px;
+    outline: none;
+}
+
+.login-form input[type="text"]:focus,
+.login-form input[type="tel"]:focus {
+    border-color: #78a98b;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(86, 142, 106, 0.09);
+}
+
+.login-toggle-row {
+    margin-top: 10px;
+    padding: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    border: 1px solid #dbe5df;
+    border-radius: 14px;
+    background: #fafcfb;
+    color: #243129;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.login-toggle-row input {
+    position: absolute;
+    opacity: 0;
+}
+
+.login-toggle-row input:checked + .toggle-track {
+    background: #4d8a67;
+}
+
+.login-toggle-row input:checked + .toggle-track::before {
+    transform: translateX(20px);
+}
+
+.login-button {
+    margin-top: 12px;
+    padding: 16px 18px;
+    border: none;
+    border-radius: 14px;
+    background: #173b2a;
+    color: white;
+    font-size: 15px;
+    font-weight: 800;
+}
+
+.login-button:hover {
+    background: #24543c;
+}
+
+.login-error {
+    min-height: 18px;
+    color: #b54747;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.login-preview {
+    padding: 30px;
+    border-radius: 22px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    background:
+        linear-gradient(180deg, rgba(23, 59, 42, 0.84), rgba(23, 59, 42, 0.95)),
+        linear-gradient(135deg, #4d8a67, #6f83b7);
+    color: white;
+}
+
+.login-preview .section-label {
+    color: #bfe0cb;
+}
+
+.login-preview h3 {
+    max-width: 330px;
+    margin: 6px 0 22px;
+    font-size: 30px;
+    line-height: 1.08;
+    letter-spacing: -0.8px;
+}
+
+.login-route-preview {
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.login-route-preview + .login-route-preview {
+    margin-top: 12px;
+}
+
+.login-route-preview strong,
+.login-route-preview span {
+    display: block;
+}
+
+.login-route-preview strong {
+    font-size: 14px;
+}
+
+.login-route-preview span {
+    margin-top: 6px;
+    color: #d9e9df;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.login-route-preview.muted {
+    background: rgba(255, 255, 255, 0.07);
 }
 
 
@@ -428,6 +670,34 @@ button {
     gap: 10px;
 }
 
+.user-profile-pill {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 8px 7px 12px;
+    border: 1px solid #e4e9e5;
+    border-radius: 999px;
+    background: white;
+    color: #536158;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.user-profile-pill button {
+    padding: 6px 9px;
+    border: 1px solid #d8e1dc;
+    border-radius: 999px;
+    background: #fafcfb;
+    color: #3f594b;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.user-profile-pill button:hover {
+    border-color: #78a98b;
+    color: #173b2a;
+}
+
 .settings-link {
     width: 38px;
     height: 38px;
@@ -579,30 +849,42 @@ button {
 ================================ */
 
 .meeting-preference {
-    margin-top: 24px;
+    display: none;
 }
 
 .commute-settings,
 .saved-routes-panel,
-.incident-section {
+.incident-section,
+.meetup-finder {
     margin-top: 24px;
 }
 
-.commute-controls {
+.meetup-finder {
+    padding-top: 4px;
+}
+
+.meetup-grid {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 14px;
 }
 
-.commute-field {
+.meetup-field {
     min-height: 82px;
+    position: relative;
     padding: 16px;
     border: 1px solid #e1e7e3;
     border-radius: 16px;
     background: #fafcfb;
 }
 
-.commute-field label {
+.meetup-field:focus-within {
+    border-color: #78a98b;
+    background: white;
+    box-shadow: 0 0 0 4px rgba(86, 142, 106, 0.08);
+}
+
+.meetup-field label {
     display: block;
     margin-bottom: 8px;
     color: #8b9690;
@@ -611,8 +893,8 @@ button {
     letter-spacing: 1.2px;
 }
 
-.commute-field input,
-.commute-field select {
+.meetup-field input,
+.meetup-field select {
     width: 100%;
     border: none;
     outline: none;
@@ -621,71 +903,59 @@ button {
     font-size: 15px;
 }
 
-.custom-notify-field {
-    max-width: 260px;
+.meetup-category-field {
+    grid-column: span 1;
+}
+
+.meetup-find-button {
     margin-top: 14px;
 }
 
-.settings-container {
-    max-width: 760px;
+.meetup-status {
+    min-height: 18px;
+    margin-top: 12px;
+    color: #65736b;
+    font-size: 13px;
+    font-weight: 700;
 }
 
-.settings-page-card {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 24px;
-    padding: 28px;
-    border: 1px solid #e3e9e5;
-    border-radius: 20px;
-    background: white;
-    box-shadow: 0 12px 40px rgba(27, 55, 39, 0.06);
+.meetup-results {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
 }
 
-.settings-page-card h2 {
-    margin-top: 4px;
-    font-size: 26px;
-    letter-spacing: -0.5px;
-}
-
-.settings-toggle {
-    padding: 14px;
+.meetup-place-card {
+    min-height: 154px;
+    padding: 15px;
     border: 1px solid #e1e7e3;
     border-radius: 14px;
     background: #fafcfb;
 }
 
-.app-settings {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 16px;
-    border: 1px solid #e1e7e3;
-    border-radius: 16px;
-    background: #fafcfb;
+.meetup-place-card strong,
+.meetup-place-card span {
+    display: block;
 }
 
-.settings-copy h3 {
-    margin-top: 4px;
-    font-size: 16px;
+.meetup-place-card strong {
+    color: #243129;
+    font-size: 15px;
 }
 
-.settings-copy p {
-    margin-top: 6px;
+.meetup-place-card span {
+    margin-top: 7px;
     color: #7a877f;
     font-size: 12px;
     line-height: 1.45;
 }
 
-.toggle-row {
+.meetup-place-meta {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    color: #243129;
-    font-size: 13px;
-    font-weight: 700;
-    white-space: nowrap;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 12px;
 }
 
 .toggle-row input {
@@ -1055,6 +1325,268 @@ button {
     color: #68756d;
     font-size: 12px;
     line-height: 1.35;
+}
+
+.saved-route-item strong,
+.saved-route-item span {
+    display: block;
+}
+
+.saved-route-item strong {
+    color: #243129;
+    font-size: 14px;
+}
+
+.saved-route-item span {
+    margin-top: 4px;
+    color: #7a877f;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.route-status-pill,
+.incident-time,
+.meetup-chip {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 8px;
+    border-radius: 999px;
+    background: #e5f1e9;
+    color: #2f6b49;
+    font-size: 11px;
+    font-weight: 800;
+}
+
+.commute-controls {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.commute-field {
+    min-height: 82px;
+    padding: 16px;
+    border: 1px solid #e1e7e3;
+    border-radius: 16px;
+    background: #fafcfb;
+}
+
+.commute-field label {
+    display: block;
+    margin-bottom: 8px;
+    color: #8b9690;
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+}
+
+.commute-field input,
+.commute-field select {
+    width: 100%;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #18251e;
+    font-size: 15px;
+}
+
+.custom-notify-field {
+    max-width: 260px;
+    margin-top: 14px;
+}
+
+.settings-container {
+    max-width: 760px;
+}
+
+.settings-page-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 28px;
+    border: 1px solid #e3e9e5;
+    border-radius: 20px;
+    background: white;
+    box-shadow: 0 12px 40px rgba(27, 55, 39, 0.06);
+}
+
+.settings-page-card h2 {
+    margin-top: 4px;
+    font-size: 26px;
+    letter-spacing: -0.5px;
+}
+
+.settings-toggle {
+    padding: 14px;
+    border: 1px solid #e1e7e3;
+    border-radius: 14px;
+    background: #fafcfb;
+}
+
+.app-settings {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px;
+    border: 1px solid #e1e7e3;
+    border-radius: 16px;
+    background: #fafcfb;
+}
+
+.settings-copy h3 {
+    margin-top: 4px;
+    font-size: 16px;
+}
+
+.settings-copy p {
+    margin-top: 6px;
+    color: #7a877f;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #243129;
+    font-size: 13px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.toggle-row input {
+    position: absolute;
+    opacity: 0;
+}
+
+.toggle-track {
+    width: 46px;
+    height: 26px;
+    padding: 3px;
+    border-radius: 999px;
+    background: #dfe7e2;
+    transition: 0.2s ease;
+}
+
+.toggle-track::before {
+    content: "";
+    display: block;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.16);
+    transition: 0.2s ease;
+}
+
+.toggle-row input:checked + .toggle-track {
+    background: #4d8a67;
+}
+
+.toggle-row input:checked + .toggle-track::before {
+    transform: translateX(20px);
+}
+
+.saved-routes-panel {
+    padding-top: 4px;
+}
+
+.saved-routes-heading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.edit-routes-btn {
+    flex-shrink: 0;
+    padding: 8px 13px;
+    border: 1px solid #d8e1dc;
+    border-radius: 10px;
+    background: white;
+    color: #3f594b;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.edit-routes-btn.active {
+    border-color: #4d8a67;
+    background: #e5f1e9;
+    color: #2f6b49;
+}
+
+.saved-routes-list {
+    display: grid;
+    gap: 10px;
+}
+
+.saved-route-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px;
+    border: 1px solid #e1e7e3;
+    border-radius: 14px;
+    background: #fafcfb;
+}
+
+.saved-route-item:focus-within {
+    border-color: #78a98b;
+}
+
+.saved-route-copy {
+    min-width: 0;
+    flex: 1;
+}
+
+.route-order-handle {
+    width: 34px;
+    height: 34px;
+    flex-shrink: 0;
+    border: 1px solid #d8e4dc;
+    border-radius: 10px;
+    background: #f4f8f5;
+    color: #3f7d59;
+    font-size: 0;
+    font-weight: 900;
+    line-height: 1;
+}
+
+.route-order-handle::before {
+    content: "\2191";
+    font-size: 18px;
+    line-height: 1;
+}
+
+.route-order-handle:hover {
+    background: #e0ece5;
+    border-color: #9fc4ac;
+    color: #3f7d59;
+}
+
+.delete-route-btn {
+    display: none;
+    flex-shrink: 0;
+    padding: 8px 10px;
+    border: 1px solid #f0c8c8;
+    border-radius: 9px;
+    background: #fff6f6;
+    color: #9b3030;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.saved-routes-list.editing .delete-route-btn {
+    display: block;
+}
+
+.legacy-hidden {
+    display: none !important;
 }
 
 .saved-route-item strong,
@@ -1710,6 +2242,24 @@ footer {
 
 @media (max-width: 850px) {
 
+    .login-screen {
+        padding: 20px;
+    }
+
+    .login-shell {
+        grid-template-columns: 1fr;
+    }
+
+    .login-card,
+    .login-preview {
+        padding: 24px;
+        border-radius: 18px;
+    }
+
+    .login-preview h3 {
+        font-size: 24px;
+    }
+
     .hero {
         grid-template-columns: 1fr;
 
@@ -1789,7 +2339,9 @@ footer {
 @media (max-width: 900px) {
     .commute-controls,
     .incident-section,
-    .alternative-grid {
+    .alternative-grid,
+    .meetup-grid,
+    .meetup-results {
         grid-template-columns: 1fr;
     }
 
@@ -1807,10 +2359,12 @@ footer {
 
 body.elderly-mode {
     font-size: 18px;
+    zoom: 1.25;
 }
 
+body.elderly-mode .topbar,
 body.elderly-mode .container {
-    max-width: 980px;
+    max-width: 1380px;
 }
 
 body.elderly-mode .brand p,
