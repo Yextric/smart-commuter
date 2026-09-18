@@ -5523,6 +5523,130 @@ const incidentTimeLabel =
         ".incident-time"
     );
 
+const meetupUserLocationInput =
+    document.getElementById(
+        "meetupUserLocation"
+    );
+
+const meetupFriendLocationInput =
+    document.getElementById(
+        "meetupFriendLocation"
+    );
+
+const meetupUserMaxTimeInput =
+    document.getElementById(
+        "meetupUserMaxTime"
+    );
+
+const meetupFriendMaxTimeInput =
+    document.getElementById(
+        "meetupFriendMaxTime"
+    );
+
+const meetupCategorySelect =
+    document.getElementById(
+        "meetupCategory"
+    );
+
+const meetupCustomCategoryField =
+    document.getElementById(
+        "meetupCustomCategoryField"
+    );
+
+const meetupCustomCategoryInput =
+    document.getElementById(
+        "meetupCustomCategory"
+    );
+
+const findMeetupPlacesBtn =
+    document.getElementById(
+        "findMeetupPlacesBtn"
+    );
+
+const meetupPlacesStatus =
+    document.getElementById(
+        "meetupPlacesStatus"
+    );
+
+const meetupPlacesList =
+    document.getElementById(
+        "meetupPlacesList"
+    );
+
+const loginScreen =
+    document.getElementById(
+        "loginScreen"
+    );
+
+const loginForm =
+    document.getElementById(
+        "loginForm"
+    );
+
+const authTitle =
+    document.getElementById(
+        "authTitle"
+    );
+
+const authIntro =
+    document.getElementById(
+        "authIntro"
+    );
+
+const authModeButtons =
+    document.querySelectorAll(
+        ".auth-mode-btn"
+    );
+
+const authSubmitButton =
+    document.getElementById(
+        "authSubmitButton"
+    );
+
+const loginNameInput =
+    document.getElementById(
+        "loginName"
+    );
+
+const loginPhoneInput =
+    document.getElementById(
+        "loginPhone"
+    );
+
+const loginElderlyModeToggle =
+    document.getElementById(
+        "loginElderlyMode"
+    );
+
+const loginError =
+    document.getElementById(
+        "loginError"
+    );
+
+const userProfilePill =
+    document.getElementById(
+        "userProfilePill"
+    );
+
+const userProfileName =
+    document.getElementById(
+        "userProfileName"
+    );
+
+const logoutButton =
+    document.getElementById(
+        "logoutButton"
+    );
+
+const commuterUsersKey =
+    "commuteTogetherUsers";
+
+const activeCommuterUserKey =
+    "activeCommuterUser";
+
+let activeCommuterUser = null;
+let authMode = "login";
+
 function formatCommuteTime(timeValue) {
 
     if (!timeValue) {
@@ -5616,7 +5740,355 @@ function showCommuterMessage(message) {
         "block";
 }
 
+function cleanPhoneNumber(value) {
+
+    return String(value || "")
+        .replace(/\D/g, "");
+}
+
+function readCommuterUsers() {
+
+    try {
+
+        const users =
+            JSON.parse(
+                localStorage.getItem(commuterUsersKey) || "{}"
+            );
+
+        return users && typeof users === "object"
+            ? users
+            : {};
+
+    } catch (error) {
+
+        console.warn(
+            "Unable to load commuter users.",
+            error
+        );
+
+        return {};
+    }
+}
+
+function saveCommuterUser(user) {
+
+    const users =
+        readCommuterUsers();
+
+    users[user.phone] =
+        user;
+
+    localStorage.setItem(
+        commuterUsersKey,
+        JSON.stringify(users)
+    );
+}
+
+function getActiveCommuterUser() {
+
+    const phone =
+        localStorage.getItem(
+            activeCommuterUserKey
+        );
+
+    if (!phone) {
+        return null;
+    }
+
+    const users =
+        readCommuterUsers();
+
+    return users[phone] || null;
+}
+
+function updateActiveCommuterUser(updates) {
+
+    if (!activeCommuterUser) {
+        return;
+    }
+
+    activeCommuterUser = {
+        ...activeCommuterUser,
+        ...updates
+    };
+
+    saveCommuterUser(
+        activeCommuterUser
+    );
+}
+
+function applyLoginState() {
+
+    activeCommuterUser =
+        getActiveCommuterUser();
+
+    document.body.classList.toggle(
+        "logged-in",
+        Boolean(activeCommuterUser)
+    );
+
+    if (!activeCommuterUser) {
+        return;
+    }
+
+    if (userProfilePill) {
+        userProfilePill.classList.remove(
+            "hidden"
+        );
+    }
+
+    if (userProfileName) {
+        userProfileName.textContent =
+            activeCommuterUser.name;
+    }
+
+    if (elderlyModeToggle) {
+        elderlyModeToggle.checked =
+            Boolean(
+                activeCommuterUser.elderlyMode
+            );
+    }
+
+    setElderlyMode(
+        Boolean(
+            activeCommuterUser.elderlyMode
+        )
+    );
+}
+
+function setAuthMode(mode) {
+
+    authMode =
+        mode === "signup"
+            ? "signup"
+            : "login";
+
+    authModeButtons.forEach(button => {
+
+        button.classList.toggle(
+            "active",
+            button.dataset.authMode === authMode
+        );
+
+    });
+
+    if (authTitle) {
+        authTitle.textContent =
+            authMode === "signup"
+                ? "Create your commute account."
+                : "Welcome back to your commute.";
+    }
+
+    if (authIntro) {
+        authIntro.textContent =
+            authMode === "signup"
+                ? "Sign up once with your name and phone number, then log in to see your saved routes."
+                : "Log in with your name and phone number to keep your saved route alerts ready every time.";
+    }
+
+    if (authSubmitButton) {
+        authSubmitButton.textContent =
+            authMode === "signup"
+                ? "Create account"
+                : "Log in";
+    }
+
+    if (loginError) {
+        loginError.textContent =
+            "";
+    }
+}
+
+authModeButtons.forEach(button => {
+
+    button.addEventListener(
+        "click",
+        () => {
+
+            setAuthMode(
+                button.dataset.authMode
+            );
+
+        }
+    );
+});
+
+if (loginElderlyModeToggle) {
+
+    loginElderlyModeToggle.addEventListener(
+        "change",
+        () => {
+
+            document.body.classList.toggle(
+                "elderly-mode",
+                loginElderlyModeToggle.checked
+            );
+
+        }
+    );
+}
+
+if (loginForm) {
+
+    loginForm.addEventListener(
+        "submit",
+        event => {
+
+            event.preventDefault();
+
+            const name =
+                loginNameInput
+                    ? loginNameInput.value.trim()
+                    : "";
+
+            const phone =
+                cleanPhoneNumber(
+                    loginPhoneInput
+                        ? loginPhoneInput.value
+                        : ""
+                );
+
+            if (!name || phone.length < 8) {
+
+                if (loginError) {
+                    loginError.textContent =
+                        "Enter your name and a valid phone number.";
+                }
+
+                return;
+            }
+
+            const users =
+                readCommuterUsers();
+
+            if (authMode === "signup") {
+
+                if (users[phone]) {
+
+                    setAuthMode(
+                        "login"
+                    );
+
+                    if (loginError) {
+                        loginError.textContent =
+                            "This phone number already has an account. Please log in.";
+                    }
+
+                    return;
+                }
+
+                const newUser = {
+                    name,
+                    phone,
+                    elderlyMode:
+                        Boolean(
+                            loginElderlyModeToggle &&
+                            loginElderlyModeToggle.checked
+                        )
+                };
+
+                saveCommuterUser(newUser);
+
+                setAuthMode(
+                    "login"
+                );
+
+                if (loginError) {
+                    loginError.textContent =
+                        "Account created. Please log in.";
+                }
+
+                if (loginNameInput) {
+                    loginNameInput.value =
+                        name;
+                }
+
+                if (loginPhoneInput) {
+                    loginPhoneInput.value =
+                        phone;
+                }
+
+                return;
+            }
+
+            const previousUser =
+                users[phone];
+
+            if (!previousUser) {
+
+                setAuthMode(
+                    "signup"
+                );
+
+                if (loginError) {
+                    loginError.textContent =
+                        "No account found for this phone number. Please sign up first.";
+                }
+
+                return;
+            }
+
+            const user = {
+                ...previousUser,
+                name,
+                phone,
+                elderlyMode:
+                    Boolean(
+                        loginElderlyModeToggle &&
+                        loginElderlyModeToggle.checked
+                    )
+            };
+
+            saveCommuterUser(user);
+
+            localStorage.setItem(
+                activeCommuterUserKey,
+                phone
+            );
+
+            if (loginError) {
+                loginError.textContent =
+                    "";
+            }
+
+            applyLoginState();
+            loadSavedTrainRoutes();
+            renderSavedTrainRoutes();
+            checkTrainDisruptions();
+
+        }
+    );
+}
+
+if (logoutButton) {
+
+    logoutButton.addEventListener(
+        "click",
+        () => {
+
+            localStorage.removeItem(
+                activeCommuterUserKey
+            );
+
+            activeCommuterUser =
+                null;
+
+            window.location.reload();
+
+        }
+    );
+}
+
 function addSavedCommuterRoute() {
+
+    if (!activeCommuterUser) {
+
+        showCommuterMessage(
+            "Please log in before saving a route alert."
+        );
+
+        return;
+    }
 
     if (
         !commuterStartInput ||
@@ -5794,21 +6266,22 @@ if (savedRoutesList) {
                 return;
             }
 
-            const nextRoute =
-                route.nextElementSibling;
+            const previousRoute =
+                route.previousElementSibling;
 
-            if (nextRoute) {
+            if (
+                previousRoute &&
+                !previousRoute.classList.contains(
+                    "empty-saved-route"
+                )
+            ) {
 
                 savedRoutesList.insertBefore(
-                    nextRoute,
-                    route
+                    route,
+                    previousRoute
                 );
 
-            } else {
-
-                savedRoutesList.prepend(
-                    route
-                );
+                syncSavedRouteOrderFromDom();
 
             }
 
@@ -5823,25 +6296,25 @@ function setElderlyMode(enabled) {
         enabled
     );
 
-    localStorage.setItem(
-        "elderlyMode",
-        enabled ? "true" : "false"
-    );
+    if (activeCommuterUser) {
+
+        updateActiveCommuterUser({
+            elderlyMode:
+                Boolean(enabled)
+        });
+
+    }
 }
 
-const savedElderlyPreference =
-    localStorage.getItem(
-        "elderlyMode"
-    ) === "true";
-
-setElderlyMode(
-    savedElderlyPreference
-);
+applyLoginState();
 
 if (elderlyModeToggle) {
 
     elderlyModeToggle.checked =
-        savedElderlyPreference;
+        Boolean(
+            activeCommuterUser &&
+            activeCommuterUser.elderlyMode
+        );
 
     elderlyModeToggle.addEventListener(
         "change",
@@ -6057,7 +6530,8 @@ function useBrowserLocation(
 
 function setupLocationDropdown(
     inputId,
-    menuId
+    menuId,
+    currentLocationLabel = "Use current location"
 ) {
 
     const input =
@@ -6078,12 +6552,9 @@ function setupLocationDropdown(
     let debounceTimer = null;
     let currentSuggestions = [];
 
-    input.value =
-        "Your location";
-
     setCurrentLocationLabel(
         input.id,
-        "Your location"
+        currentLocationLabel
     );
 
     input.addEventListener(
@@ -6257,3 +6728,777 @@ setupLocationDropdown(
     "friendLocation",
     "friendLocationSuggestions"
 );
+
+setupLocationDropdown(
+    "meetupUserLocation",
+    "meetupUserLocationSuggestions"
+);
+
+setupLocationDropdown(
+    "meetupFriendLocation",
+    "meetupFriendLocationSuggestions"
+);
+
+
+// =====================================================
+// MEET-UP RESTAURANT FINDER
+// =====================================================
+
+const meetupPlaces = [
+    {
+        name: "Ya Kun Kaya Toast",
+        area: "City Hall",
+        categories: ["breakfast", "restaurant"],
+        notes: "Quick breakfast spot near central MRT links.",
+        travel: {
+            central: 12,
+            north: 28,
+            northEast: 24,
+            east: 30,
+            west: 34
+        }
+    },
+    {
+        name: "The Assembly Ground",
+        area: "Dhoby Ghaut",
+        categories: ["breakfast", "lunch", "leisure", "restaurant"],
+        notes: "Cafe-style meals at a central meet-up point.",
+        travel: {
+            central: 10,
+            north: 25,
+            northEast: 22,
+            east: 32,
+            west: 33
+        }
+    },
+    {
+        name: "Josh's Grill",
+        area: "Bugis",
+        categories: ["lunch", "dinner", "restaurant"],
+        notes: "Casual Western food around Bugis and Bras Basah.",
+        travel: {
+            central: 12,
+            north: 30,
+            northEast: 26,
+            east: 25,
+            west: 36
+        }
+    },
+    {
+        name: "Genki Sushi",
+        area: "Orchard",
+        categories: ["lunch", "dinner", "restaurant"],
+        notes: "Good for a simple sit-down meal after work.",
+        travel: {
+            central: 15,
+            north: 24,
+            northEast: 30,
+            east: 36,
+            west: 30
+        }
+    },
+    {
+        name: "PS.Cafe",
+        area: "Dempsey",
+        categories: ["leisure", "pet-friendly", "restaurant"],
+        notes: "Leisure meal option with a calmer setting.",
+        travel: {
+            central: 24,
+            north: 38,
+            northEast: 40,
+            east: 48,
+            west: 34
+        }
+    },
+    {
+        name: "Canopy",
+        area: "Bishan",
+        categories: ["breakfast", "leisure", "pet-friendly", "restaurant"],
+        notes: "Pet-friendly restaurant near Bishan-Ang Mo Kio Park.",
+        travel: {
+            central: 24,
+            north: 14,
+            northEast: 30,
+            east: 40,
+            west: 38
+        }
+    },
+    {
+        name: "Tiong Bahru Bakery",
+        area: "Tiong Bahru",
+        categories: ["breakfast", "lunch", "leisure", "restaurant"],
+        notes: "Bakery and cafe option for relaxed meetups.",
+        travel: {
+            central: 16,
+            north: 34,
+            northEast: 34,
+            east: 42,
+            west: 24
+        }
+    },
+    {
+        name: "PastaMania",
+        area: "Serangoon",
+        categories: ["lunch", "dinner", "restaurant"],
+        notes: "Convenient for North-East Line meetups.",
+        travel: {
+            central: 26,
+            north: 28,
+            northEast: 12,
+            east: 38,
+            west: 46
+        }
+    },
+    {
+        name: "Privé",
+        area: "East Coast",
+        categories: ["breakfast", "leisure", "pet-friendly", "restaurant"],
+        notes: "Pet-friendly leisure option in the east.",
+        travel: {
+            central: 32,
+            north: 48,
+            northEast: 44,
+            east: 18,
+            west: 55
+        }
+    }
+];
+
+function getMeetupZone(location) {
+
+    const value =
+        String(location || "")
+            .toLowerCase();
+
+    if (
+        value.includes("woodlands") ||
+        value.includes("yishun") ||
+        value.includes("ang mo kio") ||
+        value.includes("bishan") ||
+        value.includes("toa payoh")
+    ) {
+        return "north";
+    }
+
+    if (
+        value.includes("sengkang") ||
+        value.includes("punggol") ||
+        value.includes("hougang") ||
+        value.includes("serangoon")
+    ) {
+        return "northEast";
+    }
+
+    if (
+        value.includes("tampines") ||
+        value.includes("bedok") ||
+        value.includes("pasir ris") ||
+        value.includes("changi")
+    ) {
+        return "east";
+    }
+
+    if (
+        value.includes("jurong") ||
+        value.includes("clementi") ||
+        value.includes("buona vista") ||
+        value.includes("choa chu kang")
+    ) {
+        return "west";
+    }
+
+    return "central";
+}
+
+function getMeetupCategory() {
+
+    if (
+        meetupCategorySelect &&
+        meetupCategorySelect.value === "custom"
+    ) {
+
+        return (
+            meetupCustomCategoryInput &&
+            meetupCustomCategoryInput.value.trim()
+        ) || "restaurant";
+    }
+
+    return meetupCategorySelect
+        ? meetupCategorySelect.value
+        : "restaurant";
+}
+
+function placeMatchesCategory(place, category) {
+
+    const cleanCategory =
+        String(category || "")
+            .trim()
+            .toLowerCase();
+
+    if (!cleanCategory || cleanCategory === "restaurant") {
+        return place.categories.includes("restaurant");
+    }
+
+    return place.categories.some(item =>
+        item.includes(cleanCategory) ||
+        cleanCategory.includes(item)
+    ) ||
+        place.name.toLowerCase().includes(cleanCategory) ||
+        place.notes.toLowerCase().includes(cleanCategory);
+}
+
+function renderMeetupPlaces() {
+
+    if (!meetupPlacesList || !meetupPlacesStatus) {
+        return;
+    }
+
+    const userLocation =
+        meetupUserLocationInput
+            ? meetupUserLocationInput.value.trim()
+            : "";
+
+    const friendLocation =
+        meetupFriendLocationInput
+            ? meetupFriendLocationInput.value.trim()
+            : "";
+
+    const userMaxTime =
+        meetupUserMaxTimeInput
+            ? Number(meetupUserMaxTimeInput.value)
+            : 30;
+
+    const friendMaxTime =
+        meetupFriendMaxTimeInput
+            ? Number(meetupFriendMaxTimeInput.value)
+            : 30;
+
+    if (!userLocation || !friendLocation) {
+
+        meetupPlacesStatus.textContent =
+            "Enter both locations first.";
+
+        meetupPlacesList.innerHTML =
+            "";
+
+        return;
+    }
+
+    const userZone =
+        getMeetupZone(userLocation);
+
+    const friendZone =
+        getMeetupZone(friendLocation);
+
+    const category =
+        getMeetupCategory();
+
+    const matches =
+        meetupPlaces
+            .map(place => ({
+                ...place,
+                userTravel:
+                    place.travel[userZone] || place.travel.central,
+                friendTravel:
+                    place.travel[friendZone] || place.travel.central
+            }))
+            .filter(place =>
+                place.userTravel <= userMaxTime &&
+                place.friendTravel <= friendMaxTime &&
+                placeMatchesCategory(place, category)
+            )
+            .sort((a, b) =>
+                (a.userTravel + a.friendTravel) -
+                (b.userTravel + b.friendTravel)
+            );
+
+    meetupPlacesStatus.textContent =
+        matches.length
+            ? `${matches.length} place${matches.length === 1 ? "" : "s"} found for ${category}.`
+            : "No places matched those time limits. Try increasing the maximum travel time.";
+
+    meetupPlacesList.innerHTML =
+        matches.map(place => `
+            <article class="meetup-place-card">
+                <strong>${escapeHtml(place.name)}</strong>
+                <span>${escapeHtml(place.area)} - ${escapeHtml(place.notes)}</span>
+                <div class="meetup-place-meta">
+                    <span class="meetup-chip">You: ${escapeHtml(place.userTravel)} min</span>
+                    <span class="meetup-chip">Friend: ${escapeHtml(place.friendTravel)} min</span>
+                    <span class="meetup-chip">${escapeHtml(place.categories[0])}</span>
+                </div>
+            </article>
+        `).join("");
+}
+
+if (meetupCategorySelect && meetupCustomCategoryField) {
+
+    meetupCategorySelect.addEventListener(
+        "change",
+        () => {
+
+            meetupCustomCategoryField.classList.toggle(
+                "hidden",
+                meetupCategorySelect.value !== "custom"
+            );
+
+        }
+    );
+}
+
+if (findMeetupPlacesBtn) {
+
+    findMeetupPlacesBtn.addEventListener(
+        "click",
+        renderMeetupPlaces
+    );
+}
+
+
+// =====================================================
+// GTFS-REALTIME TRAIN DISRUPTION ALERTS
+// =====================================================
+// Keep the LTA AccountKey and the short-lived protobuf URL on the server.
+// The server endpoint should return { alerts: [...] } or GTFS-RT JSON entities.
+const trainAlertsEndpoint =
+    window.TRAIN_ALERTS_API_URL ||
+    "/api/train-service-alerts";
+
+const savedTrainRoutesBaseKey =
+    "savedTrainDisruptionRoutes";
+
+let savedTrainRoutes = [];
+let deliveredTrainAlerts = new Set();
+
+function getSavedTrainRoutesKey() {
+
+    if (!activeCommuterUser) {
+        return null;
+    }
+
+    return `${savedTrainRoutesBaseKey}:${activeCommuterUser.phone}`;
+}
+
+function loadSavedTrainRoutes() {
+
+    const routeKey =
+        getSavedTrainRoutesKey();
+
+    if (!routeKey) {
+        savedTrainRoutes = [];
+        return;
+    }
+
+    try {
+
+        const storedRoutes =
+            JSON.parse(
+                localStorage.getItem(routeKey) || "[]"
+            );
+
+        savedTrainRoutes =
+            Array.isArray(storedRoutes)
+                ? storedRoutes
+                : [];
+
+    } catch (error) {
+
+        console.warn(
+            "Unable to load saved train routes.",
+            error
+        );
+
+        savedTrainRoutes = [];
+    }
+}
+
+function saveTrainRoutes() {
+
+    const routeKey =
+        getSavedTrainRoutesKey();
+
+    if (!routeKey) {
+        return;
+    }
+
+    localStorage.setItem(
+        routeKey,
+        JSON.stringify(savedTrainRoutes)
+    );
+}
+
+function syncSavedRouteOrderFromDom() {
+
+    if (!savedRoutesList) {
+        return;
+    }
+
+    const routeById =
+        new Map(
+            savedTrainRoutes.map(route => [
+                route.id,
+                route
+            ])
+        );
+
+    savedTrainRoutes =
+        Array.from(
+            savedRoutesList.querySelectorAll(
+                ".saved-route-item[data-train-route-id]"
+            )
+        )
+            .map(item =>
+                routeById.get(
+                    item.dataset.trainRouteId
+                )
+            )
+            .filter(Boolean);
+
+    saveTrainRoutes();
+}
+
+function getAlertString(value) {
+    if (typeof value === "string") return value;
+    if (!value) return "";
+    if (Array.isArray(value.translation)) {
+        return value.translation
+            .map(item => item.text || "")
+            .join(" ");
+    }
+    return value.text || value.value || "";
+}
+
+function readTrainAlerts(payload) {
+    const entities =
+        payload.alerts || payload.entity || payload.value || [];
+
+    return entities.map(entity => {
+        const alert = entity.alert || entity;
+
+        return {
+            id: String(alert.id || entity.id || JSON.stringify(alert)),
+            title: getAlertString(
+                alert.headerText || alert.header_text || alert.title
+            ) || "Train service disruption",
+            description: getAlertString(
+                alert.descriptionText || alert.description_text ||
+                alert.description || alert.text
+            ) || "Service may be affected.",
+            entities: alert.informedEntity || alert.informed_entity || []
+        };
+    });
+}
+
+function routeIsInNoticeWindow(route, now = new Date()) {
+    if (!route.commuteTime) return false;
+
+    const [hours, minutes] = route.commuteTime.split(":").map(Number);
+    const departure = new Date(now);
+
+    departure.setHours(hours, minutes, 0, 0);
+
+    const remaining = departure.getTime() - now.getTime();
+
+    return remaining >= 0 &&
+        remaining <= Number(route.notifyMinutes) * 60 * 1000;
+}
+
+function stationsOnSavedRoute(route) {
+    return findRoute(route.start, route.end) || [
+        normaliseStation(route.start),
+        normaliseStation(route.end)
+    ];
+}
+
+function affectedStationsOnRoute(alert, stations) {
+    const text = `${alert.title} ${alert.description}`.toLowerCase();
+
+    return stations.filter(station =>
+        text.includes(station.toLowerCase())
+    );
+}
+
+function alertAffectsRoute(alert, stations) {
+    if (affectedStationsOnRoute(alert, stations).length > 0) {
+        return true;
+    }
+
+    const alertText =
+        `${alert.title} ${alert.description}`.toUpperCase();
+
+    return stations.some((station, index) => {
+        if (index === stations.length - 1) return false;
+
+        const line = normaliseTransportLine(
+            getLineBetween(station, stations[index + 1])
+        );
+
+        return line && new RegExp(`\\b${line}\\b`).test(alertText);
+    });
+}
+
+function findDetour(start, end, closedStations) {
+    const blocked = new Set(closedStations.map(normaliseStation));
+    const origin = normaliseStation(start);
+    const destination = normaliseStation(end);
+
+    // A rider can still begin or finish at an affected station.
+    blocked.delete(origin);
+    blocked.delete(destination);
+
+    const queue = [[origin]];
+    const visited = new Set([origin]);
+
+    while (queue.length) {
+        const path = queue.shift();
+        const current = path[path.length - 1];
+
+        for (const next of mrtNetwork[current] || []) {
+            if (visited.has(next) || blocked.has(next)) continue;
+
+            const candidate = [...path, next];
+            if (next === destination) return candidate;
+
+            visited.add(next);
+            queue.push(candidate);
+        }
+    }
+
+    return null;
+}
+
+function getDetourAdvice(route, affectedStations) {
+    if (affectedStations.length === 0) {
+        return "The alert does not name an affected station, so a safe MRT detour cannot be calculated yet.";
+    }
+
+    const detour = findDetour(
+        route.start,
+        route.end,
+        affectedStations
+    );
+
+    if (!detour) {
+        return "No MRT-only detour was found. Please check nearby bus services.";
+    }
+
+    const transfers = getTransferStations(detour).length;
+
+    if (route.priority === "least-transfer") {
+        return `Alternative: ${detour.join(" → ")} (${transfers} transfer${transfers === 1 ? "" : "s"}).`;
+    }
+
+    if (route.priority === "bus-friendly") {
+        return `MRT fallback: ${detour.join(" → ")}. Consider a bus connection around the disruption.`;
+    }
+
+    return `Fastest MRT detour: ${detour.join(" → ")}.`;
+}
+
+function setSavedRouteStatus(routeId, disrupted) {
+    const routeItem = document.querySelector(
+        `.saved-route-item[data-train-route-id="${routeId}"]`
+    );
+
+    const status = routeItem?.querySelector(".route-status-pill");
+    if (!status) return;
+
+    status.textContent = disrupted ? "Disrupted" : "Monitoring";
+    status.classList.toggle("quiet", !disrupted);
+}
+
+function notifyTrainDisruption(route, alert, affectedStations) {
+    const location = affectedStations.length
+        ? affectedStations.join(", ")
+        : "your saved MRT line";
+
+    const message =
+        `${alert.title}. Affected: ${location}. ` +
+        getDetourAdvice(route, affectedStations);
+
+    showCommuterMessage(message);
+
+    if ("Notification" in window && Notification.permission === "granted") {
+        new Notification("CommuteTogether disruption alert", {
+            body: message,
+            tag: `train-disruption-${route.id}-${alert.id}`
+        });
+    }
+}
+
+async function checkTrainDisruptions() {
+    const routesToCheck = savedTrainRoutes.filter(routeIsInNoticeWindow);
+    if (!routesToCheck.length) return;
+
+    try {
+        const response = await fetch(trainAlertsEndpoint, {
+            headers: { Accept: "application/json" }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Train alerts request failed: ${response.status}`);
+        }
+
+        const alerts = readTrainAlerts(await response.json());
+
+        routesToCheck.forEach(route => {
+            const stations = stationsOnSavedRoute(route);
+            const alert = alerts.find(item => alertAffectsRoute(item, stations));
+
+            setSavedRouteStatus(route.id, Boolean(alert));
+            if (!alert) return;
+
+            const key = `${route.id}:${alert.id}`;
+            if (deliveredTrainAlerts.has(key)) return;
+
+            deliveredTrainAlerts.add(key);
+            notifyTrainDisruption(
+                route,
+                alert,
+                affectedStationsOnRoute(alert, stations)
+            );
+        });
+    } catch (error) {
+        // Network/API problems should not repeatedly interrupt the commuter.
+        console.warn("Unable to check train disruption alerts.", error);
+    }
+}
+
+// This listener complements the existing save-route UI and persists the
+// configuration needed by the disruption monitor.
+if (commuterRouteFormButton) {
+    commuterRouteFormButton.addEventListener("click", async () => {
+        if (!activeCommuterUser) return;
+
+        const start = commuterStartInput?.value.trim();
+        const end = commuterEndInput?.value.trim();
+
+        if (!start || !end) return;
+
+        const route = {
+            id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()),
+            name: commuterRouteNameInput?.value.trim() || "Daily commute",
+            start,
+            end,
+            commuteTime: commuteTimeInput?.value || "",
+            notifyMinutes: getSelectedNotifyMinutes(),
+            priority: routePrioritySelect?.value || "fastest"
+        };
+
+        savedTrainRoutes.unshift(route);
+        saveTrainRoutes();
+        renderSavedTrainRoutes();
+
+        if ("Notification" in window && Notification.permission === "default") {
+            await Notification.requestPermission();
+        }
+
+        checkTrainDisruptions();
+    });
+}
+
+if (savedRoutesList) {
+    savedRoutesList.addEventListener("click", event => {
+        const button = event.target.closest(".delete-route-btn");
+        const routeId = button?.closest(".saved-route-item")?.dataset.trainRouteId;
+        if (!routeId) return;
+
+        savedTrainRoutes = savedTrainRoutes.filter(route => route.id !== routeId);
+        saveTrainRoutes();
+        renderSavedTrainRoutes();
+    });
+}
+
+// Restore user-created routes after a refresh. The static prototype examples
+// remain untouched, while saved routes are appended with their monitor IDs.
+if (savedRoutesList) {
+    savedTrainRoutes.slice().reverse().forEach(route => {
+        const item = document.createElement("article");
+        item.className = "saved-route-item";
+        item.dataset.trainRouteId = route.id;
+        item.innerHTML = `
+            <button class="route-order-handle" type="button" aria-label="Move route" title="Move route">↕</button>
+            <div class="saved-route-copy">
+                <strong>${escapeHtml(route.name || "Daily commute")}</strong>
+                <span>${escapeHtml(route.start)} to ${escapeHtml(route.end)} - ${escapeHtml(formatCommuteTime(route.commuteTime))} - alert ${escapeHtml(route.notifyMinutes)} min before - ${escapeHtml(getRoutePriorityLabel(route.priority))}</span>
+            </div>
+            <span class="route-status-pill quiet">Monitoring</span>
+            <button class="delete-route-btn" type="button">Delete</button>
+        `;
+        savedRoutesList.prepend(item);
+    });
+}
+
+function buildSavedRouteItem(route) {
+
+    const item =
+        document.createElement("article");
+
+    item.className =
+        "saved-route-item";
+
+    item.dataset.trainRouteId =
+        route.id;
+
+    item.innerHTML = `
+        <button class="route-order-handle" type="button" aria-label="Move route up" title="Move route up">↑</button>
+        <div class="saved-route-copy">
+            <strong>${escapeHtml(route.name || "Daily commute")}</strong>
+            <span>${escapeHtml(route.start)} to ${escapeHtml(route.end)} - ${escapeHtml(formatCommuteTime(route.commuteTime))} - alert ${escapeHtml(route.notifyMinutes)} min before - ${escapeHtml(getRoutePriorityLabel(route.priority))}</span>
+        </div>
+        <span class="route-status-pill quiet">Monitoring</span>
+        <button class="delete-route-btn" type="button">Delete</button>
+    `;
+
+    return item;
+}
+
+function renderSavedTrainRoutes() {
+
+    if (!savedRoutesList) {
+        return;
+    }
+
+    savedRoutesList
+        .querySelectorAll(
+            ".saved-route-item, .empty-saved-route"
+        )
+        .forEach(item => item.remove());
+
+    if (!activeCommuterUser) {
+        return;
+    }
+
+    if (!savedTrainRoutes.length) {
+
+        const item =
+            document.createElement("article");
+
+        item.className =
+            "saved-route-item empty-saved-route";
+
+        item.innerHTML = `
+            <div class="saved-route-copy">
+                <strong>No saved routes yet</strong>
+                <span>Save your regular commute and it will appear here whenever you log in with this phone number.</span>
+            </div>
+            <span class="route-status-pill quiet">Ready</span>
+        `;
+
+        savedRoutesList.appendChild(item);
+        return;
+    }
+
+    savedTrainRoutes.forEach(route => {
+
+        savedRoutesList.appendChild(
+            buildSavedRouteItem(route)
+        );
+
+    });
+}
+
+loadSavedTrainRoutes();
+renderSavedTrainRoutes();
+checkTrainDisruptions();
+setInterval(checkTrainDisruptions, 60 * 1000);

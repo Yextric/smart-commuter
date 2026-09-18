@@ -28,6 +28,146 @@
 
 <body>
 
+    <section
+        id="loginScreen"
+        class="login-screen"
+    >
+
+        <div class="login-shell">
+
+            <div class="login-card">
+
+                <div class="login-brand-mark">
+                    CT
+                </div>
+
+                <span class="section-label">
+                    COMMUTETOGETHER
+                </span>
+
+                <h2 id="authTitle">
+                    Welcome back to your commute.
+                </h2>
+
+                <p id="authIntro">
+                    Log in with your phone number to keep your saved route alerts ready every time.
+                </p>
+
+                <div
+                    class="auth-mode-toggle"
+                    role="tablist"
+                    aria-label="Choose login or sign up"
+                >
+                    <button
+                        type="button"
+                        class="auth-mode-btn active"
+                        data-auth-mode="login"
+                    >
+                        Login
+                    </button>
+
+                    <button
+                        type="button"
+                        class="auth-mode-btn"
+                        data-auth-mode="signup"
+                    >
+                        Sign up
+                    </button>
+                </div>
+
+                <form
+                    id="loginForm"
+                    class="login-form"
+                >
+
+                    <label for="loginName">
+                        USER NAME
+                    </label>
+
+                    <input
+                        type="text"
+                        id="loginName"
+                        placeholder="e.g. Miko"
+                        autocomplete="name"
+                        required
+                    >
+
+                    <label for="loginPhone">
+                        PHONE NUMBER
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="loginPhone"
+                        placeholder="e.g. 9123 4567"
+                        autocomplete="tel"
+                        required
+                    >
+
+                    <label class="login-toggle-row">
+                        <span>
+                            Elderly setting
+                        </span>
+
+                        <input
+                            type="checkbox"
+                            id="loginElderlyMode"
+                        >
+
+                        <span class="toggle-track"></span>
+                    </label>
+
+                    <button
+                        id="authSubmitButton"
+                        type="submit"
+                        class="login-button"
+                    >
+                        Log in
+                    </button>
+
+                    <div
+                        id="loginError"
+                        class="login-error"
+                    ></div>
+
+                </form>
+
+            </div>
+
+            <div class="login-preview">
+
+                <span class="section-label">
+                    ROUTE ALERTS
+                </span>
+
+                <h3>
+                    Saved routes stay with your profile.
+                </h3>
+
+                <div class="login-route-preview">
+                    <strong>
+                        Morning commute
+                    </strong>
+                    <span>
+                        Sengkang to Raffles Place - alert before travel
+                    </span>
+                </div>
+
+                <div class="login-route-preview muted">
+                    <strong>
+                        Elderly mode
+                    </strong>
+                    <span>
+                        Larger text and a wider, easier interface when enabled.
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
 
     <!-- HEADER -->
     <header class="topbar">
@@ -54,6 +194,22 @@
 
 
         <div class="topbar-actions">
+
+            <div
+                id="userProfilePill"
+                class="user-profile-pill hidden"
+            >
+                <span id="userProfileName">
+                    User
+                </span>
+
+                <button
+                    id="logoutButton"
+                    type="button"
+                >
+                    Sign out
+                </button>
+            </div>
 
             <div class="location-status">
 
@@ -206,7 +362,7 @@
                             type="text"
                             id="userLocation"
                             class="location-autocomplete-input"
-                            placeholder="e.g. Sengkang, NYP, or Orchard Road"
+                            placeholder="e.g. Sengkang"
                             autocomplete="off"
                         >
 
@@ -241,7 +397,7 @@
                             type="text"
                             id="friendLocation"
                             class="location-autocomplete-input"
-                            placeholder="e.g. Raffles Place, school, or office"
+                            placeholder="e.g. Raffles Place"
                             autocomplete="off"
                         >
 
@@ -445,7 +601,10 @@
                     class="saved-routes-list"
                 >
 
-                    <article class="saved-route-item">
+                    <article
+                        class="saved-route-item sample-route-item"
+                        data-sample-route="true"
+                    >
 
                         <button
                             class="route-order-handle"
@@ -482,7 +641,10 @@
                     </article>
 
 
-                    <article class="saved-route-item">
+                    <article
+                        class="saved-route-item sample-route-item"
+                        data-sample-route="true"
+                    >
 
                         <button
                             class="route-order-handle"
@@ -639,6 +801,161 @@
             </div>
 
 
+
+
+            <!-- MEET-UP FINDER -->
+            <div class="meetup-finder">
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            MEET-UP FINDER
+                        </span>
+
+                        <h3>
+                            Find restaurants both of you can reach
+                        </h3>
+
+                    </div>
+
+                </div>
+
+                <div class="meetup-grid">
+
+                    <div class="meetup-field">
+                        <label for="meetupUserLocation">
+                            YOUR LOCATION
+                        </label>
+
+                        <input
+                            type="text"
+                            id="meetupUserLocation"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Sengkang"
+                            autocomplete="off"
+                        >
+
+                        <div
+                            id="meetupUserLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
+                    </div>
+
+                    <div class="meetup-field">
+                        <label for="meetupFriendLocation">
+                            FRIEND LOCATION
+                        </label>
+
+                        <input
+                            type="text"
+                            id="meetupFriendLocation"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Bishan"
+                            autocomplete="off"
+                        >
+
+                        <div
+                            id="meetupFriendLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
+                    </div>
+
+                    <div class="meetup-field">
+                        <label for="meetupUserMaxTime">
+                            YOUR MAX TRAVEL TIME (MINUTES)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="meetupUserMaxTime"
+                            min="5"
+                            max="120"
+                            value="30"
+                        >
+                    </div>
+
+                    <div class="meetup-field">
+                        <label for="meetupFriendMaxTime">
+                            FRIEND MAX TRAVEL TIME (MINUTES)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="meetupFriendMaxTime"
+                            min="5"
+                            max="120"
+                            value="30"
+                        >
+                    </div>
+
+                    <div class="meetup-field meetup-category-field">
+                        <label for="meetupCategory">
+                            CATEGORY
+                        </label>
+
+                        <select id="meetupCategory">
+                            <option value="breakfast">
+                                Breakfast
+                            </option>
+                            <option value="lunch">
+                                Lunch
+                            </option>
+                            <option value="dinner">
+                                Dinner
+                            </option>
+                            <option value="leisure">
+                                Leisure
+                            </option>
+                            <option value="pet-friendly">
+                                Pet friendly
+                            </option>
+                            <option value="restaurant" selected>
+                                Restaurant
+                            </option>
+                            <option value="custom">
+                                Custom
+                            </option>
+                        </select>
+                    </div>
+
+                    <div
+                        id="meetupCustomCategoryField"
+                        class="meetup-field hidden"
+                    >
+                        <label for="meetupCustomCategory">
+                            CUSTOM CATEGORY
+                        </label>
+
+                        <input
+                            type="text"
+                            id="meetupCustomCategory"
+                            placeholder="e.g. halal cafe, dessert, ramen"
+                        >
+                    </div>
+
+                </div>
+
+                <button
+                    id="findMeetupPlacesBtn"
+                    class="find-button meetup-find-button"
+                    type="button"
+                >
+                    Show restaurants
+                </button>
+
+                <div
+                    id="meetupPlacesStatus"
+                    class="meetup-status"
+                ></div>
+
+                <div
+                    id="meetupPlacesList"
+                    class="meetup-results"
+                ></div>
+
+            </div>
 
 
             <!-- FIND JOURNEY BUTTON -->

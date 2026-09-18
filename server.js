@@ -294,6 +294,165 @@ app.get("/api/test", (req, res) => {
 
 
 // =====================================================
+// DATAMALL TRAIN SERVICE ALERTS TEST
+// =====================================================
+
+let trainAlertsCache = null;
+let trainAlertsCacheExpiry = 0;
+
+app.get("/api/train-service-alerts", async (req, res) => {
+
+    try {
+
+        if (
+            trainAlertsCache &&
+            Date.now() < trainAlertsCacheExpiry
+        ) {
+
+            return res.json(trainAlertsCache);
+
+        }
+
+
+        if (!process.env.LTA_ACCOUNT_KEY) {
+
+            return res.status(500).json({
+                error:
+                    "LTA_ACCOUNT_KEY is missing from .env"
+            });
+
+        }
+
+
+        const metadataResponse =
+            await fetch(
+                "https://datamall2.mytransport.sg/ltaodataservice/GTFSRealTimeTrainServiceAlerts",
+                {
+                    headers: {
+                        AccountKey:
+                            process.env.LTA_ACCOUNT_KEY,
+                        Accept:
+                            "application/json"
+                    }
+                }
+            );
+
+
+        const metadataText =
+            await metadataResponse.text();
+
+
+        let metadata = null;
+
+
+        try {
+
+            metadata =
+                JSON.parse(metadataText);
+
+        } catch (error) {
+
+            return res.status(502).json({
+                error:
+                    "DataMall did not return valid JSON metadata",
+                status:
+                    metadataResponse.status,
+                body:
+                    metadataText.slice(0, 500)
+            });
+
+        }
+
+
+        if (!metadataResponse.ok) {
+
+            return res.status(metadataResponse.status).json({
+                error:
+                    "DataMall metadata request failed",
+                datamall:
+                    metadata
+            });
+
+        }
+
+
+        const feedLink =
+            metadata &&
+            metadata.value &&
+            metadata.value[0] &&
+            metadata.value[0].link;
+
+
+        if (!feedLink) {
+
+            return res.status(502).json({
+                error:
+                    "DataMall response did not include a GTFS realtime feed link",
+                datamall:
+                    metadata
+            });
+
+        }
+
+
+        const feedResponse =
+            await fetch(feedLink);
+
+
+        const feedBuffer =
+            Buffer.from(
+                await feedResponse.arrayBuffer()
+            );
+
+
+        const result = {
+            ok:
+                metadataResponse.ok && feedResponse.ok,
+            checkedAt:
+                new Date().toISOString(),
+            metadataTimestamp:
+                metadata.value[0].timestamp,
+            feedStatus:
+                feedResponse.status,
+            feedContentType:
+                feedResponse.headers.get("content-type"),
+            feedBytes:
+                feedBuffer.length,
+            message:
+                "DataMall train service alerts API is reachable. The GTFS feed is protobuf/binary, so this endpoint confirms the real API works even when there are no active disruptions.",
+            alerts:
+                []
+        };
+
+
+        trainAlertsCache =
+            result;
+
+        trainAlertsCacheExpiry =
+            Date.now() +
+            (60 * 1000);
+
+
+        res.json(result);
+
+    } catch (error) {
+
+        console.error(
+            "DataMall train alerts error:",
+            error
+        );
+
+        res.status(500).json({
+            error:
+                "Unable to reach DataMall train service alerts API"
+        });
+
+    }
+
+});
+
+
+// =====================================================
 // REAL-TIME JOURNEY SYSTEM
 // =====================================================
 
