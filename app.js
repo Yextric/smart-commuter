@@ -5523,6 +5523,47 @@ const incidentTimeLabel =
         ".incident-time"
     );
 
+const SAVED_ROUTES_STORAGE_KEY =
+    "commuteTogetherSavedRoutes";
+
+const routeReminderTimers =
+    new Map();
+
+const defaultSavedRoutes = [
+    {
+        id:
+            "default-morning",
+        name:
+            "Morning commute",
+        start:
+            "Sengkang",
+        end:
+            "Raffles Place",
+        commuteTime:
+            "08:00",
+        notifyMinutes:
+            20,
+        priority:
+            "fastest"
+    },
+    {
+        id:
+            "default-evening",
+        name:
+            "Evening commute",
+        start:
+            "Raffles Place",
+        end:
+            "Sengkang",
+        commuteTime:
+            "18:15",
+        notifyMinutes:
+            30,
+        priority:
+            "fastest"
+    }
+];
+
 function formatCommuteTime(timeValue) {
 
     if (!timeValue) {
@@ -5546,6 +5587,13 @@ function formatCommuteTime(timeValue) {
         hour % 12 || 12;
 
     return `${displayHour}:${minuteText} ${suffix}`;
+}
+
+function createRouteId() {
+
+    return `route-${Date.now()}-${Math.random()
+        .toString(36)
+        .slice(2, 8)}`;
 }
 
 function getRoutePriorityLabel(value) {
@@ -5616,6 +5664,282 @@ function showCommuterMessage(message) {
         "block";
 }
 
+function loadSavedRoutes() {
+
+    try {
+
+        const saved =
+            JSON.parse(
+                localStorage.getItem(
+                    SAVED_ROUTES_STORAGE_KEY
+                ) || "null"
+            );
+
+        if (Array.isArray(saved)) {
+            return saved;
+        }
+
+    } catch (error) {
+
+        console.error(
+            "Unable to load saved routes:",
+            error
+        );
+    }
+
+    saveSavedRoutes(
+        defaultSavedRoutes
+    );
+
+    return defaultSavedRoutes;
+}
+
+function saveSavedRoutes(routes) {
+
+    localStorage.setItem(
+        SAVED_ROUTES_STORAGE_KEY,
+        JSON.stringify(routes)
+    );
+}
+
+function getRouteDetailUrl(routeId) {
+
+    return `route.html?id=${encodeURIComponent(routeId)}`;
+}
+
+function getNextReminderTime(route) {
+
+    if (!route.commuteTime) {
+        return null;
+    }
+
+    const [
+        hourText,
+        minuteText
+    ] = route.commuteTime.split(":");
+
+    const reminder =
+        new Date();
+
+    reminder.setHours(
+        Number(hourText),
+        Number(minuteText),
+        0,
+        0
+    );
+
+    reminder.setMinutes(
+        reminder.getMinutes() -
+            Number(route.notifyMinutes || 0)
+    );
+
+    if (reminder <= new Date()) {
+        reminder.setDate(
+            reminder.getDate() + 1
+        );
+    }
+
+    return reminder;
+}
+
+function showRouteReminderPopup(route) {
+
+    const existingPopup =
+        document.querySelector(
+            ".route-reminder-popup"
+        );
+
+    if (existingPopup) {
+        existingPopup.remove();
+    }
+
+    const popup =
+        document.createElement(
+            "div"
+        );
+
+    popup.className =
+        "route-reminder-popup";
+
+    popup.innerHTML = `
+        <div class="route-reminder-card">
+            <span class="section-label">ROUTE REMINDER</span>
+            <h3>${escapeHtml(route.name || "Saved route")}</h3>
+            <p>${escapeHtml(route.start)} to ${escapeHtml(route.end)} is coming up soon.</p>
+            <div class="route-reminder-actions">
+                <button type="button" class="reminder-open-route">View route map</button>
+                <button type="button" class="reminder-dismiss">Dismiss</button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(
+        popup
+    );
+
+    popup.querySelector(
+        ".reminder-open-route"
+    ).addEventListener(
+        "click",
+        () => {
+            window.location.href =
+                getRouteDetailUrl(route.id);
+        }
+    );
+
+    popup.querySelector(
+        ".reminder-dismiss"
+    ).addEventListener(
+        "click",
+        () => popup.remove()
+    );
+}
+
+function scheduleRouteReminder(route) {
+
+    if (!route || !route.id) {
+        return;
+    }
+
+    if (
+        routeReminderTimers.has(route.id)
+    ) {
+        clearTimeout(
+            routeReminderTimers.get(route.id)
+        );
+    }
+
+    const reminderTime =
+        getNextReminderTime(route);
+
+    if (!reminderTime) {
+        return;
+    }
+
+    const timerId =
+        setTimeout(
+            () => {
+
+                showRouteReminderPopup(
+                    route
+                );
+
+                if (
+                    "Notification" in window &&
+                    Notification.permission ===
+                        "granted"
+                ) {
+
+                    const notification =
+                        new Notification(
+                            route.name ||
+                                "Route reminder",
+                            {
+                                body:
+                                    `${route.start} to ${route.end} is coming up soon.`
+                            }
+                        );
+
+                    notification.onclick =
+                        () => {
+                            window.focus();
+                            window.location.href =
+                                getRouteDetailUrl(
+                                    route.id
+                                );
+                        };
+                }
+
+                scheduleRouteReminder(
+                    route
+                );
+
+            },
+            reminderTime.getTime() -
+                Date.now()
+        );
+
+    routeReminderTimers.set(
+        route.id,
+        timerId
+    );
+}
+
+function scheduleAllRouteReminders() {
+
+    routeReminderTimers.forEach(
+        timerId => clearTimeout(timerId)
+    );
+
+    routeReminderTimers.clear();
+
+    loadSavedRoutes().forEach(
+        scheduleRouteReminder
+    );
+}
+
+function renderSavedRouteItem(route) {
+
+    const article =
+        document.createElement(
+            "article"
+        );
+
+    article.className =
+        "saved-route-item";
+
+    article.dataset.routeId =
+        route.id;
+
+    const travelTime =
+        formatCommuteTime(
+            route.commuteTime
+        );
+
+    const priority =
+        getRoutePriorityLabel(
+            route.priority
+        );
+
+    article.innerHTML = `
+        <button
+            class="route-order-handle"
+            type="button"
+            aria-label="Move route"
+            title="Move route"
+        >::</button>
+        <div class="saved-route-copy">
+            <strong>${escapeHtml(route.name || "Daily commute")}</strong>
+            <span>${escapeHtml(route.start)} to ${escapeHtml(route.end)} - ${escapeHtml(travelTime)} - alert ${escapeHtml(route.notifyMinutes)} min before - ${escapeHtml(priority)}</span>
+        </div>
+        <span class="route-status-pill">Monitoring</span>
+        <button
+            class="delete-route-btn"
+            type="button"
+        >Delete</button>
+    `;
+
+    return article;
+}
+
+function renderSavedRoutes() {
+
+    if (!savedRoutesList) {
+        return;
+    }
+
+    savedRoutesList.innerHTML =
+        "";
+
+    loadSavedRoutes().forEach(
+        route => {
+            savedRoutesList.appendChild(
+                renderSavedRouteItem(route)
+            );
+        }
+    );
+}
+
 function addSavedCommuterRoute() {
 
     if (
@@ -5627,10 +5951,16 @@ function addSavedCommuterRoute() {
     }
 
     const start =
-        commuterStartInput.value.trim();
+        (
+            commuterStartInput.dataset.address ||
+            commuterStartInput.value
+        ).trim();
 
     const end =
-        commuterEndInput.value.trim();
+        (
+            commuterEndInput.dataset.address ||
+            commuterEndInput.value
+        ).trim();
 
     if (!start || !end) {
 
@@ -5704,11 +6034,138 @@ function addSavedCommuterRoute() {
     );
 }
 
+function addSavedCommuterRouteV2() {
+
+    if (
+        !commuterStartInput ||
+        !commuterEndInput ||
+        !savedRoutesList
+    ) {
+        return;
+    }
+
+    const start =
+        (
+            commuterStartInput.dataset.address ||
+            commuterStartInput.value
+        ).trim();
+
+    const end =
+        (
+            commuterEndInput.dataset.address ||
+            commuterEndInput.value
+        ).trim();
+
+    if (!start || !end) {
+
+        showCommuterMessage(
+            "Please enter a start and end location for this daily route."
+        );
+
+        return;
+    }
+
+    const routeName =
+        commuterRouteNameInput &&
+        commuterRouteNameInput.value.trim()
+            ? commuterRouteNameInput.value.trim()
+            : "Daily commute";
+
+    const notifyMinutes =
+        getSelectedNotifyMinutes();
+
+    const commuteTime =
+        commuteTimeInput
+            ? commuteTimeInput.value
+            : "";
+
+    const travelTime =
+        commuteTime
+            ? formatCommuteTime(
+                commuteTime
+            )
+            : "time not set";
+
+    const route =
+        {
+            id:
+                createRouteId(),
+
+            name:
+                routeName,
+
+            start:
+                start,
+
+            end:
+                end,
+
+            startLatitude:
+                commuterStartInput.dataset.latitude || "",
+
+            startLongitude:
+                commuterStartInput.dataset.longitude || "",
+
+            endLatitude:
+                commuterEndInput.dataset.latitude || "",
+
+            endLongitude:
+                commuterEndInput.dataset.longitude || "",
+
+            commuteTime:
+                commuteTime,
+
+            notifyMinutes:
+                notifyMinutes,
+
+            priority:
+                routePrioritySelect
+                    ? routePrioritySelect.value
+                    : "fastest",
+
+            createdAt:
+                new Date().toISOString()
+        };
+
+    const routes =
+        loadSavedRoutes();
+
+    routes.unshift(
+        route
+    );
+
+    saveSavedRoutes(
+        routes
+    );
+
+    renderSavedRoutes();
+
+    scheduleRouteReminder(
+        route
+    );
+
+    if (incidentTimeLabel) {
+        incidentTimeLabel.textContent =
+            `Check ${notifyMinutes} min before`;
+    }
+
+    showCommuterMessage(
+        `Route alert saved for ${travelTime}. A reminder popup will appear ${notifyMinutes} minutes before you leave while this app is open.`
+    );
+
+    if (
+        "Notification" in window &&
+        Notification.permission === "default"
+    ) {
+        Notification.requestPermission();
+    }
+}
+
 if (commuterRouteFormButton) {
 
     commuterRouteFormButton.addEventListener(
         "click",
-        addSavedCommuterRoute
+        addSavedCommuterRouteV2
     );
 }
 
@@ -5770,7 +6227,21 @@ if (savedRoutesList) {
                     );
 
                 if (route) {
+                    const routeId =
+                        route.dataset.routeId;
+
+                    saveSavedRoutes(
+                        loadSavedRoutes()
+                            .filter(
+                                savedRoute =>
+                                    savedRoute.id !==
+                                    routeId
+                            )
+                    );
+
                     route.remove();
+
+                    scheduleAllRouteReminders();
                 }
 
                 return;
@@ -5782,6 +6253,24 @@ if (savedRoutesList) {
                 );
 
             if (!handle) {
+                const routeCard =
+                    event.target.closest(
+                        ".saved-route-item"
+                    );
+
+                if (
+                    routeCard &&
+                    routeCard.dataset.routeId &&
+                    !savedRoutesList.classList.contains(
+                        "editing"
+                    )
+                ) {
+                    window.location.href =
+                        getRouteDetailUrl(
+                            routeCard.dataset.routeId
+                        );
+                }
+
                 return;
             }
 
@@ -5812,9 +6301,37 @@ if (savedRoutesList) {
 
             }
 
+            const orderedIds =
+                Array.from(
+                    savedRoutesList.querySelectorAll(
+                        ".saved-route-item"
+                    )
+                ).map(
+                    item => item.dataset.routeId
+                );
+
+            const routesById =
+                new Map(
+                    loadSavedRoutes().map(
+                        savedRoute => [
+                            savedRoute.id,
+                            savedRoute
+                        ]
+                    )
+                );
+
+            saveSavedRoutes(
+                orderedIds
+                    .map(id => routesById.get(id))
+                    .filter(Boolean)
+            );
+
         }
     );
 }
+
+renderSavedRoutes();
+scheduleAllRouteReminders();
 
 function setElderlyMode(enabled) {
 
@@ -6060,6 +6577,8 @@ function setupLocationDropdown(
     menuId
 ) {
 
+    return;
+
     const input =
         document.getElementById(
             inputId
@@ -6257,3 +6776,672 @@ setupLocationDropdown(
     "friendLocation",
     "friendLocationSuggestions"
 );
+
+
+// =====================================================
+// ANY-LOCATION AUTOCOMPLETE
+// Based on the smart-commuter start/end location inputs.
+// =====================================================
+
+async function searchOneMapSuggestions(
+    searchValue,
+    limit = 5
+) {
+
+    if (
+        !searchValue ||
+        searchValue.trim().length < 2
+    ) {
+        return [];
+    }
+
+    try {
+
+        const url =
+            `http://localhost:3000/api/search` +
+            `?search=${encodeURIComponent(
+                searchValue
+            )}`;
+
+        const response =
+            await fetch(url);
+
+        if (!response.ok) {
+            throw new Error(
+                "Backend search failed"
+            );
+        }
+
+        const data =
+            await response.json();
+
+        if (
+            !data.results ||
+            data.results.length === 0
+        ) {
+            return getFallbackLocationSuggestions(
+                searchValue
+            );
+        }
+
+        const options =
+            data.results
+                .map(result => {
+
+                    const latitude =
+                        parseFloat(
+                            result.LATITUDE
+                        );
+
+                    const longitude =
+                        parseFloat(
+                            result.LONGITUDE
+                        );
+
+                    if (
+                        !Number.isFinite(latitude) ||
+                        !Number.isFinite(longitude)
+                    ) {
+                        return null;
+                    }
+
+                    return {
+                        name:
+                            result.BUILDING ||
+                            result.SEARCHVAL ||
+                            result.ADDRESS,
+
+                        address:
+                            result.ADDRESS,
+
+                        latitude:
+                            latitude,
+
+                        longitude:
+                            longitude
+                    };
+                })
+                .filter(Boolean)
+                .slice(0, limit);
+
+        return options.length > 0
+            ? options
+            : getFallbackLocationSuggestions(
+                searchValue
+            );
+
+    } catch (error) {
+
+        console.error(
+            "Location suggestion error:",
+            error
+        );
+
+        return getFallbackLocationSuggestions(
+            searchValue
+        );
+    }
+}
+
+function setSelectedLocation(
+    input,
+    location
+) {
+
+    input.value =
+        location.name;
+
+    input.dataset.address =
+        location.address || location.name;
+
+    input.dataset.latitude =
+        String(location.latitude || "");
+
+    input.dataset.longitude =
+        String(location.longitude || "");
+}
+
+function clearSelectedLocation(
+    input
+) {
+
+    delete input.dataset.address;
+    delete input.dataset.latitude;
+    delete input.dataset.longitude;
+}
+
+function createLocationSuggestionButton(
+    option,
+    onSelect
+) {
+
+    const button =
+        document.createElement(
+            "button"
+        );
+
+    button.type =
+        "button";
+
+    button.className =
+        "location-suggestion";
+
+    const icon =
+        document.createElement(
+            "span"
+        );
+
+    icon.className =
+        "location-suggestion-icon suggestion-icon";
+
+    icon.textContent =
+        option.icon || "PIN";
+
+    const text =
+        document.createElement(
+            "span"
+        );
+
+    const main =
+        document.createElement(
+            "span"
+        );
+
+    main.className =
+        "location-suggestion-main suggestion-title";
+
+    main.textContent =
+        option.name;
+
+    const sub =
+        document.createElement(
+            "span"
+        );
+
+    sub.className =
+        "location-suggestion-sub suggestion-address";
+
+    sub.textContent =
+        option.address || "";
+
+    text.appendChild(main);
+
+    if (option.address) {
+        text.appendChild(sub);
+    }
+
+    button.appendChild(icon);
+    button.appendChild(text);
+
+    button.addEventListener(
+        "mousedown",
+        event => {
+
+            event.preventDefault();
+
+            onSelect(option);
+        }
+    );
+
+    return button;
+}
+
+function setupLocationAutocomplete({
+    inputId,
+    suggestionsId,
+    includeCurrentLocation = false
+}) {
+
+    const input =
+        document.getElementById(
+            inputId
+        );
+
+    const suggestions =
+        document.getElementById(
+            suggestionsId
+        );
+
+    if (!input || !suggestions) {
+        return;
+    }
+
+    input.value =
+        "";
+
+    clearSelectedLocation(
+        input
+    );
+
+    let debounceTimer = null;
+    let requestId = 0;
+    let latestOptions = [];
+
+    function hideSuggestions() {
+
+        suggestions.classList.add(
+            "hidden"
+        );
+
+        suggestions.innerHTML =
+            "";
+    }
+
+    function showMessage(message) {
+
+        suggestions.innerHTML =
+            "";
+
+        suggestions.appendChild(
+            createLocationSuggestionButton(
+                {
+                    name:
+                        message,
+                    icon:
+                        "i"
+                },
+                () => {}
+            )
+        );
+
+        suggestions.classList.remove(
+            "hidden"
+        );
+    }
+
+    function chooseCurrentLocation() {
+
+        if (!navigator.geolocation) {
+
+            showMessage(
+                "Current location is not supported by this browser."
+            );
+
+            return;
+        }
+
+        showMessage(
+            "Getting your current location..."
+        );
+
+        navigator.geolocation.getCurrentPosition(
+            position => {
+
+                const latitude =
+                    position.coords.latitude;
+
+                const longitude =
+                    position.coords.longitude;
+
+                setSelectedLocation(
+                    input,
+                    {
+                        name:
+                            "Current location",
+
+                        address:
+                            `${latitude.toFixed(5)}, ${longitude.toFixed(5)}`,
+
+                        latitude:
+                            latitude,
+
+                        longitude:
+                            longitude
+                    }
+                );
+
+                hideSuggestions();
+            },
+            error => {
+
+                console.error(
+                    "Current location error:",
+                    error
+                );
+
+                showMessage(
+                    "Allow location access to use current location."
+                );
+            },
+            {
+                enableHighAccuracy:
+                    true,
+
+                maximumAge:
+                    30000,
+
+                timeout:
+                    12000
+            }
+        );
+    }
+
+    function renderSuggestions(
+        options
+    ) {
+
+        suggestions.innerHTML =
+            "";
+
+        if (includeCurrentLocation) {
+
+            suggestions.appendChild(
+                createLocationSuggestionButton(
+                    {
+                        name:
+                            "Use current location",
+
+                        address:
+                            "Use this device's GPS position",
+
+                        icon:
+                            "GPS"
+                    },
+                    chooseCurrentLocation
+                )
+            );
+        }
+
+        options.forEach(
+            option => {
+
+                suggestions.appendChild(
+                    createLocationSuggestionButton(
+                        {
+                            ...option,
+                            icon:
+                                "PIN"
+                        },
+                        selected => {
+
+                            setSelectedLocation(
+                                input,
+                                selected
+                            );
+
+                            hideSuggestions();
+                        }
+                    )
+                );
+            }
+        );
+
+        if (
+            suggestions.children.length === 0
+        ) {
+
+            hideSuggestions();
+
+            return;
+        }
+
+        suggestions.classList.remove(
+            "hidden"
+        );
+    }
+
+    input.addEventListener(
+        "focus",
+        () => {
+
+            renderSuggestions(
+                latestOptions
+            );
+        }
+    );
+
+    input.addEventListener(
+        "input",
+        () => {
+
+            clearSelectedLocation(
+                input
+            );
+
+            window.clearTimeout(
+                debounceTimer
+            );
+
+            const value =
+                input.value.trim();
+
+            if (value.length < 2) {
+
+                latestOptions =
+                    [];
+
+                renderSuggestions(
+                    latestOptions
+                );
+
+                return;
+            }
+
+            debounceTimer =
+                window.setTimeout(
+                    async () => {
+
+                        const currentRequest =
+                            ++requestId;
+
+                        const options =
+                            await searchOneMapSuggestions(
+                                value
+                            );
+
+                        if (
+                            currentRequest !==
+                            requestId
+                        ) {
+                            return;
+                        }
+
+                        latestOptions =
+                            options;
+
+                        renderSuggestions(
+                            latestOptions
+                        );
+
+                    },
+                    250
+                );
+        }
+    );
+
+    input.addEventListener(
+        "keydown",
+        event => {
+
+            if (event.key === "Escape") {
+                hideSuggestions();
+            }
+        }
+    );
+
+    document.addEventListener(
+        "mousedown",
+        event => {
+
+            if (
+                input.contains(event.target) ||
+                suggestions.contains(event.target)
+            ) {
+                return;
+            }
+
+            hideSuggestions();
+        }
+    );
+}
+
+setupLocationAutocomplete({
+    inputId:
+        "userLocation",
+
+    suggestionsId:
+        "userLocationSuggestions",
+
+    includeCurrentLocation:
+        true
+});
+
+setupLocationAutocomplete({
+    inputId:
+        "friendLocation",
+
+    suggestionsId:
+        "friendLocationSuggestions"
+});
+
+
+// =====================================================
+// LIVE LTA TRAIN SERVICE ALERTS
+// =====================================================
+
+const incidentCard =
+    document.querySelector(
+        ".incident-card"
+    );
+
+const incidentHeading =
+    incidentCard
+        ? incidentCard.querySelector(
+            "h3"
+        )
+        : null;
+
+const incidentDescription =
+    incidentCard
+        ? incidentCard.querySelector(
+            "p"
+        )
+        : null;
+
+function formatLtaAlertTime(
+    timestamp
+) {
+
+    if (!timestamp) {
+        return "Live LTA check";
+    }
+
+    return new Date(
+        timestamp * 1000
+    ).toLocaleTimeString(
+        [],
+        {
+            hour:
+                "numeric",
+
+            minute:
+                "2-digit"
+        }
+    );
+}
+
+function renderLtaTrainAlerts(
+    data
+) {
+
+    if (
+        !incidentCard ||
+        !incidentHeading ||
+        !incidentDescription
+    ) {
+        return;
+    }
+
+    const alerts =
+        data && data.alerts
+            ? data.alerts
+            : [];
+
+    if (alerts.length === 0) {
+
+        incidentCard.classList.remove(
+            "urgent"
+        );
+
+        incidentHeading.textContent =
+            "No active train alerts";
+
+        incidentDescription.textContent =
+            "LTA is not reporting any active GTFS realtime train service alerts right now.";
+
+    } else {
+
+        const firstAlert =
+            alerts[0];
+
+        incidentCard.classList.add(
+            "urgent"
+        );
+
+        incidentHeading.textContent =
+            firstAlert.header ||
+            "Live LTA train service alert";
+
+        incidentDescription.textContent =
+            firstAlert.description ||
+            `${alerts.length} active train service alert${alerts.length === 1 ? "" : "s"} reported by LTA.`;
+    }
+
+    if (incidentTimeLabel) {
+        incidentTimeLabel.textContent =
+            `Updated ${formatLtaAlertTime(
+                data.timestamp
+            )}`;
+    }
+}
+
+async function loadLtaTrainAlerts() {
+
+    try {
+
+        const useMockFault =
+            new URLSearchParams(
+                window.location.search
+            ).get("mockFault") === "1";
+
+        const response =
+            await fetch(
+                useMockFault
+                    ? "/api/lta/train-alerts?mock=fault"
+                    : "/api/lta/train-alerts"
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                "Unable to fetch LTA alerts"
+            );
+        }
+
+        const data =
+            await response.json();
+
+        renderLtaTrainAlerts(
+            data
+        );
+
+    } catch (error) {
+
+        console.error(
+            "LTA alert load error:",
+            error
+        );
+
+        if (
+            incidentHeading &&
+            incidentDescription
+        ) {
+            incidentHeading.textContent =
+                "Unable to load LTA alerts";
+
+            incidentDescription.textContent =
+                "The app could not reach the LTA train service alert feed. Try again later.";
+        }
+    }
+}
+
+loadLtaTrainAlerts();

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Route Map - CommuteTogether</title>
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+</head>
+
+<body>
+
+    <header class="topbar">
+        <a
+            class="back-link"
+            href="index.html"
+        >
+            Back
+        </a>
+
+        <div class="brand settings-brand">
+            <div class="brand-icon">
+                R
+            </div>
+
+            <div>
+                <h1 id="routePageTitle">
+                    Saved Route
+                </h1>
+                <p id="routePageSubtitle">
+                    Your upcoming commute map.
+                </p>
+            </div>
+        </div>
+    </header>
+
+    <main class="container route-detail-container">
+        <section class="route-detail-header">
+            <span class="section-label">
+                UPCOMING ROUTE
+            </span>
+
+            <h2 id="routeDetailName">
+                Loading route...
+            </h2>
+
+            <p id="routeDetailSummary">
+                Preparing your saved route.
+            </p>
+
+            <div class="route-detail-actions">
+                <a
+                    id="googleDirectionsLink"
+                    class="map-link-btn"
+                    href="#"
+                    target="_blank"
+                    rel="noopener"
+                >
+                    Open in Google Maps
+                </a>
+            </div>
+        </section>
+
+        <section class="route-map-shell">
+            <div
+                id="googleRouteMap"
+                class="google-route-map"
+            ></div>
+
+            <div
+                id="routeMapStatus"
+                class="route-map-status"
+            >
+                Loading Google route...
+            </div>
+        </section>
+    </main>
+
+    <script src="route.js"></script>
+</body>
+
+</html>

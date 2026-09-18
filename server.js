@@ -1,5 +1,7 @@
 const express = require("express");
 const cors = require("cors");
+const GtfsRealtimeBindings =
+    require("gtfs-realtime-bindings");
 require("dotenv").config();
 
 const app = express();
@@ -158,7 +160,9 @@ app.get("/api/route", async (req, res) => {
             startLat,
             startLon,
             endLat,
-            endLon
+            endLon,
+            date: requestedDate,
+            time: requestedTime
         } = req.query;
 
 
@@ -197,29 +201,35 @@ app.get("/api/route", async (req, res) => {
 
 
         const date =
-            String(
-                now.getMonth() + 1
-            ).padStart(2, "0") +
-            "-" +
-            String(
-                now.getDate()
-            ).padStart(2, "0") +
-            "-" +
-            now.getFullYear();
+            requestedDate ||
+            (
+                String(
+                    now.getMonth() + 1
+                ).padStart(2, "0") +
+                "-" +
+                String(
+                    now.getDate()
+                ).padStart(2, "0") +
+                "-" +
+                now.getFullYear()
+            );
 
 
         const time =
-            String(
-                now.getHours()
-            ).padStart(2, "0") +
-            ":" +
-            String(
-                now.getMinutes()
-            ).padStart(2, "0") +
-            ":" +
-            String(
-                now.getSeconds()
-            ).padStart(2, "0");
+            requestedTime ||
+            (
+                String(
+                    now.getHours()
+                ).padStart(2, "0") +
+                ":" +
+                String(
+                    now.getMinutes()
+                ).padStart(2, "0") +
+                ":" +
+                String(
+                    now.getSeconds()
+                ).padStart(2, "0")
+            );
 
 
         const url =
@@ -290,6 +300,368 @@ app.get("/api/test", (req, res) => {
             "Route endpoint is working"
     });
 
+});
+
+
+// =====================================================
+// FRONTEND CONFIG
+// =====================================================
+
+app.get("/api/config/maps", (req, res) => {
+
+    res.json({
+        googleMapsApiKey:
+            process.env.GOOGLE_MAPS_API_KEY || ""
+    });
+});
+
+
+// =====================================================
+// LTA GTFS REALTIME TRAIN SERVICE ALERTS
+// =====================================================
+
+function getTranslatedText(
+    translatedString
+) {
+
+    if (
+        !translatedString ||
+        !translatedString.translation ||
+        translatedString.translation.length === 0
+    ) {
+        return "";
+    }
+
+    const english =
+        translatedString.translation.find(
+            item =>
+                item.language === "en"
+        );
+
+    const translation =
+        english ||
+        translatedString.translation[0];
+
+    return String(
+        translation.text || ""
+    ).trim();
+}
+
+function getGtfsEnumName(
+    enumObject,
+    value
+) {
+
+    const match =
+        Object.entries(enumObject)
+            .find(
+                ([, enumValue]) =>
+                    enumValue === value
+            );
+
+    return match ? match[0] : String(value);
+}
+
+function formatTrainAlert(
+    entity
+) {
+
+    const alert =
+        entity.alert;
+
+    const causeEnum =
+        GtfsRealtimeBindings
+            .transit_realtime
+            .Alert
+            .Cause;
+
+    const effectEnum =
+        GtfsRealtimeBindings
+            .transit_realtime
+            .Alert
+            .Effect;
+
+    return {
+        id:
+            entity.id,
+
+        cause:
+            alert.cause !== undefined
+                ? getGtfsEnumName(
+                    causeEnum,
+                    alert.cause
+                )
+                : "",
+
+        effect:
+            alert.effect !== undefined
+                ? getGtfsEnumName(
+                    effectEnum,
+                    alert.effect
+                )
+                : "",
+
+        header:
+            getTranslatedText(
+                alert.headerText
+            ),
+
+        description:
+            getTranslatedText(
+                alert.descriptionText
+            ),
+
+        url:
+            getTranslatedText(
+                alert.url
+            ),
+
+        informedEntities:
+            (alert.informedEntity || [])
+                .map(entitySelector => ({
+                    agencyId:
+                        entitySelector.agencyId || "",
+
+                    routeId:
+                        entitySelector.routeId || "",
+
+                    routeType:
+                        entitySelector.routeType,
+
+                    stopId:
+                        entitySelector.stopId || ""
+                })),
+
+        activePeriods:
+            (alert.activePeriod || [])
+                .map(period => ({
+                    start:
+                        period.start
+                            ? Number(period.start)
+                            : null,
+
+                    end:
+                        period.end
+                            ? Number(period.end)
+                            : null
+                }))
+    };
+}
+
+function getMockTrainFaultAlerts() {
+
+    return {
+        source:
+            "Mock LTA train alert",
+
+        timestamp:
+            Math.floor(
+                Date.now() / 1000
+            ),
+
+        count:
+            1,
+
+        alerts: [
+            {
+                id:
+                    "mock-nel-sengkang-fault",
+
+                cause:
+                    "TECHNICAL_PROBLEM",
+
+                effect:
+                    "SIGNIFICANT_DELAYS",
+
+                header:
+                    "Example train fault near Sengkang",
+
+                description:
+                    "Mock alert: North East Line services between Sengkang and Serangoon are delayed due to a train fault. Use suggested alternative routes before leaving.",
+
+                url:
+                    "https://www.lta.gov.sg",
+
+                informedEntities: [
+                    {
+                        agencyId:
+                            "SBST",
+
+                        routeId:
+                            "NE",
+
+                        routeType:
+                            1,
+
+                        stopId:
+                            "NE16"
+                    }
+                ],
+
+                activePeriods: [
+                    {
+                        start:
+                            Math.floor(
+                                Date.now() / 1000
+                            ),
+
+                        end:
+                            Math.floor(
+                                Date.now() / 1000
+                            ) + 3600
+                    }
+                ]
+            }
+        ]
+    };
+}
+
+app.get("/api/lta/train-alerts", async (req, res) => {
+
+    try {
+
+        if (
+            req.query.mock === "fault"
+        ) {
+            return res.json(
+                getMockTrainFaultAlerts()
+            );
+        }
+
+        const accountKey =
+            process.env.LTA_ACCOUNT_KEY;
+
+        if (!accountKey) {
+
+            return res.status(500).json({
+                error:
+                    "LTA account key is not configured"
+            });
+        }
+
+        const metadataResponse =
+            await fetch(
+                "https://datamall2.mytransport.sg/ltaodataservice/GTFSRealTimeTrainServiceAlerts",
+                {
+                    headers: {
+                        AccountKey:
+                            accountKey,
+
+                        Accept:
+                            "application/json"
+                    }
+                }
+            );
+
+        if (!metadataResponse.ok) {
+
+            const text =
+                await metadataResponse.text();
+
+            console.error(
+                "LTA train alerts error:",
+                metadataResponse.status,
+                text
+            );
+
+            return res.status(metadataResponse.status).json({
+                error:
+                    "Unable to fetch LTA train alerts"
+            });
+        }
+
+        const metadata =
+            await metadataResponse.json();
+
+        const feedLink =
+            metadata &&
+            metadata.value &&
+            metadata.value[0] &&
+            metadata.value[0].link;
+
+        if (!feedLink) {
+
+            return res.status(502).json({
+                error:
+                    "LTA train alerts feed link is missing"
+            });
+        }
+
+        const response =
+            await fetch(
+                feedLink
+            );
+
+        if (!response.ok) {
+
+            return res.status(response.status).json({
+                error:
+                    "Unable to download LTA train alerts feed"
+            });
+        }
+
+        const arrayBuffer =
+            await response.arrayBuffer();
+
+        const feed =
+            GtfsRealtimeBindings
+                .transit_realtime
+                .FeedMessage
+                .decode(
+                    new Uint8Array(
+                        arrayBuffer
+                    )
+                );
+
+        const alerts =
+            (feed.entity || [])
+                .filter(
+                    entity =>
+                        entity.alert
+                )
+                .map(
+                    formatTrainAlert
+                );
+
+        res.json({
+            source:
+                "LTA DataMall GTFS Realtime Train Service Alerts",
+
+            timestamp:
+                metadata.value[0].timestamp
+                    ? Math.floor(
+                        new Date(
+                            metadata.value[0].timestamp
+                        ).getTime() / 1000
+                    )
+                    : feed.header &&
+                      feed.header.timestamp
+                        ? Number(
+                            feed.header.timestamp
+                        )
+                        : Math.floor(
+                            Date.now() / 1000
+                        ),
+
+            count:
+                alerts.length,
+
+            alerts:
+                alerts
+        });
+
+    } catch (error) {
+
+        console.error(
+            "LTA train alerts parse error:",
+            error
+        );
+
+        res.status(500).json({
+            error:
+                "Unable to process LTA train alerts"
+        });
+    }
 });
 
 

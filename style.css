@@ -812,6 +812,129 @@ button {
     display: none !important;
 }
 
+.saved-route-item {
+    cursor: pointer;
+}
+
+.saved-routes-list.editing .saved-route-item {
+    cursor: default;
+}
+
+.route-reminder-popup {
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 25, 19, 0.28);
+}
+
+.route-reminder-card {
+    width: min(520px, 100%);
+    padding: 22px;
+    border: 1px solid #dce7e0;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 20px 60px rgba(15, 25, 19, 0.24);
+}
+
+.route-reminder-card h3 {
+    margin: 4px 0 8px;
+    font-size: 22px;
+}
+
+.route-reminder-card p {
+    color: #68756d;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.route-reminder-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+.reminder-open-route,
+.reminder-dismiss,
+.map-link-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.reminder-open-route,
+.map-link-btn {
+    border: none;
+    background: #173b2a;
+    color: #ffffff;
+}
+
+.reminder-dismiss {
+    border: 1px solid #d8e1dc;
+    background: #ffffff;
+    color: #536158;
+}
+
+.route-detail-container {
+    max-width: 1050px;
+}
+
+.route-detail-header,
+.route-map-shell {
+    margin-top: 24px;
+    padding: 24px;
+    border: 1px solid #e3e9e5;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 12px 40px rgba(27, 55, 39, 0.06);
+}
+
+.route-detail-header h2 {
+    margin: 4px 0 8px;
+    font-size: 28px;
+    letter-spacing: -0.5px;
+}
+
+.route-detail-header p {
+    color: #68756d;
+    font-size: 15px;
+    line-height: 1.55;
+}
+
+.route-detail-actions {
+    margin-top: 18px;
+}
+
+.route-map-shell {
+    padding: 12px;
+}
+
+.google-route-map {
+    width: 100%;
+    min-height: 520px;
+    border-radius: 12px;
+    background: #eef3f0;
+}
+
+.route-map-status {
+    margin-top: 10px;
+    padding: 12px;
+    border-radius: 10px;
+    background: #f5f8f6;
+    color: #536158;
+    font-size: 13px;
+    font-weight: 700;
+}
+
 .saved-route-item strong,
 .saved-route-item span {
     display: block;
