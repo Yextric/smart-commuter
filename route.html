@@ -67,10 +67,56 @@
             </div>
         </section>
 
+        <section class="route-customizer">
+            <div>
+                <span class="section-label">
+                    DEFINE ROUTE
+                </span>
+                <h3>
+                    Choose the route you normally take
+                </h3>
+                <p>
+                    Pick one of Google's alternatives, or add places you pass by like extra destinations.
+                    The app will route through each point to mimic the commute path you usually take.
+                </p>
+            </div>
+
+            <div class="via-point-row">
+                <div class="via-point-input-wrap">
+                    <input
+                        id="viaPointInput"
+                        type="text"
+                        placeholder="Add a place you pass by"
+                        autocomplete="off"
+                    >
+                    <div
+                        id="viaPointSuggestions"
+                        class="location-suggestions hidden"
+                    ></div>
+                </div>
+                <button
+                    id="addViaPointBtn"
+                    type="button"
+                >
+                    Add point
+                </button>
+            </div>
+
+            <div
+                id="viaPointsList"
+                class="via-points-list"
+            ></div>
+        </section>
+
         <section class="route-map-shell">
             <div
                 id="googleRouteMap"
                 class="google-route-map"
+            ></div>
+
+            <div
+                id="routeAlternatives"
+                class="route-alternatives"
             ></div>
 
             <div

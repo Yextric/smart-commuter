@@ -889,6 +889,7 @@ button {
 }
 
 .route-detail-header,
+.route-customizer,
 .route-map-shell {
     margin-top: 24px;
     padding: 24px;
@@ -914,6 +915,80 @@ button {
     margin-top: 18px;
 }
 
+.route-customizer h3 {
+    margin: 4px 0 8px;
+    font-size: 20px;
+}
+
+.route-customizer p {
+    color: #68756d;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.via-point-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 16px;
+}
+
+.via-point-input-wrap {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+}
+
+.via-point-row input {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid #d8e1dc;
+    border-radius: 10px;
+    color: #243129;
+    font-size: 14px;
+}
+
+.via-point-row button,
+.via-point-chip button {
+    min-height: 42px;
+    padding: 10px 13px;
+    border: none;
+    border-radius: 10px;
+    background: #173b2a;
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 800;
+}
+
+.via-points-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.via-point-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 8px 7px 11px;
+    border: 1px solid #d8e1dc;
+    border-radius: 999px;
+    background: #f5f8f6;
+    color: #3f594b;
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.via-point-chip button {
+    min-height: 28px;
+    padding: 5px 8px;
+    background: #ffffff;
+    color: #9b3030;
+    border: 1px solid #f0c8c8;
+    border-radius: 999px;
+}
+
 .route-map-shell {
     padding: 12px;
 }
@@ -933,6 +1008,53 @@ button {
     color: #536158;
     font-size: 13px;
     font-weight: 700;
+}
+
+.route-alternatives {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.route-alternative-option {
+    min-height: 106px;
+    padding: 12px;
+    border: 1px solid #d8e1dc;
+    border-radius: 12px;
+    background: #ffffff;
+    color: #243129;
+    text-align: left;
+}
+
+.route-alternative-option.selected {
+    border-color: #4d8a67;
+    background: #f1f7f3;
+    box-shadow: 0 0 0 3px rgba(86, 142, 106, 0.08);
+}
+
+.route-alternative-option strong,
+.route-alternative-option span,
+.route-alternative-option small {
+    display: block;
+}
+
+.route-alternative-option strong {
+    font-size: 13px;
+}
+
+.route-alternative-option span {
+    margin-top: 6px;
+    color: #2f6b49;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.route-alternative-option small {
+    margin-top: 5px;
+    color: #68756d;
+    font-size: 12px;
+    line-height: 1.35;
 }
 
 .saved-route-item strong,
