@@ -12,10 +12,13 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@govtechsg/sgds-web-component": "^3.28.0",
+    "@tailwindcss/cli": "^4.3.3",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "gtfs-realtime-bindings": "^2.2.0",
-    "socket.io": "^4.8.3"
+    "socket.io": "^4.8.3",
+    "tailwindcss": "^4.3.3"
   }
 }

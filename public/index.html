@@ -1,0 +1,1807 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>CommuteTogether</title>
+
+    <link
+        rel="stylesheet"
+        href="style.css"
+    >
+
+    <!-- LEAFLET MAP -->
+    <link
+        rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+    >
+
+</head>
+
+
+<body class="auth-gated" data-app-tab="commute">
+
+    <section
+        id="loginScreen"
+        class="login-screen"
+    >
+
+        <div class="login-shell">
+
+            <div class="login-card">
+
+                <div class="login-brand-mark">
+                    CT
+                </div>
+
+                <span class="section-label">
+                    COMMUTETOGETHER
+                </span>
+
+                <h2 id="authTitle">
+                    Welcome back to your commute.
+                </h2>
+
+                <p id="authIntro">
+                    Log in with your phone number to keep your saved route alerts ready every time.
+                </p>
+
+                <div
+                    class="auth-mode-toggle"
+                    role="tablist"
+                    aria-label="Choose login or sign up"
+                >
+                    <button
+                        type="button"
+                        class="auth-mode-btn active"
+                        data-auth-mode="login"
+                    >
+                        Login
+                    </button>
+
+                    <button
+                        type="button"
+                        class="auth-mode-btn"
+                        data-auth-mode="signup"
+                    >
+                        Sign up
+                    </button>
+                </div>
+
+                <form
+                    id="loginForm"
+                    class="login-form"
+                >
+
+                    <label for="loginName">
+                        USER NAME
+                    </label>
+
+                    <input
+                        type="text"
+                        id="loginName"
+                        placeholder="e.g. Miko"
+                        autocomplete="name"
+                        required
+                    >
+
+                    <label for="loginPhone">
+                        PHONE NUMBER
+                    </label>
+
+                    <input
+                        type="tel"
+                        id="loginPhone"
+                        placeholder="e.g. 9123 4567"
+                        autocomplete="tel"
+                        required
+                    >
+
+                    <label class="login-toggle-row">
+                        <span>
+                            Elderly setting
+                        </span>
+
+                        <input
+                            type="checkbox"
+                            id="loginElderlyMode"
+                        >
+
+                        <span class="toggle-track"></span>
+                    </label>
+
+                    <button
+                        id="authSubmitButton"
+                        type="submit"
+                        class="login-button"
+                    >
+                        Log in
+                    </button>
+
+                    <div
+                        id="loginError"
+                        class="login-error"
+                    ></div>
+
+                </form>
+
+            </div>
+
+            <div class="login-preview">
+
+                <span class="section-label">
+                    ROUTE ALERTS
+                </span>
+
+                <h3>
+                    Saved routes stay with your profile.
+                </h3>
+
+                <div class="login-route-preview">
+                    <strong>
+                        Morning commute
+                    </strong>
+                    <span>
+                        Sengkang to Raffles Place - alert before travel
+                    </span>
+                </div>
+
+                <div class="login-route-preview muted">
+                    <strong>
+                        Elderly mode
+                    </strong>
+                    <span>
+                        Larger text and a wider, easier interface when enabled.
+                    </span>
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <!-- HEADER -->
+    <header class="topbar">
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                ↗
+            </div>
+
+            <div>
+
+                <h1>
+                    CommuteTogether
+                </h1>
+
+                <p>
+                    Daily route disruption alerts.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="topbar-actions">
+
+            <div
+                id="userProfilePill"
+                class="user-profile-pill hidden"
+            >
+                <span id="userProfileName">
+                    User
+                </span>
+
+                <button
+                    id="logoutButton"
+                    type="button"
+                >
+                    Sign out
+                </button>
+            </div>
+
+            <div class="location-status">
+
+                <span class="status-dot"></span>
+
+                Singapore
+
+            </div>
+
+            <a
+                class="settings-link"
+                href="settings.html"
+                aria-label="Open settings"
+                title="Settings"
+            >
+                ⚙
+            </a>
+
+        </div>
+
+    </header>
+
+
+
+    <!-- MAIN -->
+    <main class="container">
+
+
+
+        <!-- HERO -->
+        <section class="hero">
+
+
+            <div class="hero-text">
+
+                <span class="eyebrow">
+                    DAILY COMMUTER COMPANION
+                </span>
+
+
+                <h2>
+                    Know before your<br>
+                    <span>usual route.</span>
+                </h2>
+
+
+                <p>
+                    Save your regular routes, choose when you travel, and get
+                    notified early when LTA reports a public transport delay or breakdown.
+                </p>
+
+            </div>
+
+
+
+            <div class="hero-visual">
+
+                <div class="route-circle circle-1"></div>
+
+                <div class="route-circle circle-2"></div>
+
+
+                <div class="person person-you">
+
+                    <span>
+                        HOME
+                    </span>
+
+                </div>
+
+
+                <div class="person person-friend">
+
+                    <span>
+                        WORK
+                    </span>
+
+                </div>
+
+
+                <div class="meeting-point">
+
+                    <span>
+                        ★
+                    </span>
+
+                </div>
+
+
+                <div class="route-line line-1"></div>
+
+                <div class="route-line line-2"></div>
+
+            </div>
+
+        </section>
+
+
+
+
+        <!-- JOURNEY INPUT -->
+        <section class="journey-card">
+
+
+            <div class="section-heading">
+
+                <div>
+
+                    <span class="section-label">
+                    DAILY ROUTE ALERT
+                    </span>
+
+
+                    <h3>
+                        Set up your regular commute
+                    </h3>
+
+                </div>
+
+
+                <span class="step-label">
+                    01 / 01
+                </span>
+
+            </div>
+
+
+
+            <!-- LOCATION INPUTS -->
+            <div class="input-grid">
+
+
+
+                <!-- USER -->
+                <div class="location-input">
+
+                    <div class="input-icon you-icon">
+                        ●
+                    </div>
+
+
+                    <div class="input-content">
+
+                        <label for="userLocation">
+                            START LOCATION
+                        </label>
+
+
+                        <input
+                            type="text"
+                            id="userLocation"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Sengkang"
+                            autocomplete="off"
+                        >
+
+                        <div
+                            id="userLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- FRIEND -->
+                <div class="location-input">
+
+                    <div class="input-icon friend-icon">
+                        ●
+                    </div>
+
+
+                    <div class="input-content">
+
+                        <label for="friendLocation">
+                            END LOCATION
+                        </label>
+
+
+                        <input
+                            type="text"
+                            id="friendLocation"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Raffles Place"
+                            autocomplete="off"
+                        >
+
+                        <div
+                            id="friendLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- DESTINATION -->
+                <div class="location-input destination-input">
+
+                    <div class="input-icon destination-icon">
+                        ◆
+                    </div>
+
+
+                    <div class="input-content">
+
+                        <label for="destination">
+                            ROUTE NAME
+                        </label>
+
+
+                        <input
+                            type="text"
+                            id="destination"
+                            placeholder="e.g. Morning commute"
+                        >
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- COMMUTE ALERT SETTINGS -->
+            <div class="commute-settings">
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            SCHEDULE
+                        </span>
+
+
+                        <h3>
+                            When should we check this route?
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div class="commute-controls">
+
+                    <div class="commute-field">
+                        <label for="commuteTime">
+                            TRAVEL TIME
+                        </label>
+
+                        <input
+                            type="time"
+                            id="commuteTime"
+                            value="08:00"
+                        >
+                    </div>
+
+                    <div class="commute-field">
+                        <label for="notifyBefore">
+                            NOTIFY BEFORE
+                        </label>
+
+                        <select id="notifyBefore">
+                            <option value="5">
+                                5 minutes before
+                            </option>
+                            <option value="10">
+                                10 minutes before
+                            </option>
+                            <option value="20" selected>
+                                20 minutes before
+                            </option>
+                            <option value="30">
+                                30 minutes before
+                            </option>
+                            <option value="45">
+                                45 minutes before
+                            </option>
+                            <option value="60">
+                                1 hour before
+                            </option>
+                            <option value="custom">
+                                Custom time
+                            </option>
+                        </select>
+                    </div>
+
+                </div>
+
+                <div
+                    id="customNotifyField"
+                    class="commute-field custom-notify-field hidden"
+                >
+                    <label for="customNotifyBefore">
+                        CUSTOM NOTICE
+                    </label>
+
+                    <input
+                        type="number"
+                        id="customNotifyBefore"
+                        min="1"
+                        max="180"
+                        value="75"
+                    >
+                </div>
+
+            </div>
+
+
+            <!-- SAVE ROUTE BUTTON -->
+            <button
+                id="findButton"
+                class="find-button"
+                type="button"
+            >
+
+                <span>
+                    Save route alert
+                </span>
+
+
+                <span class="button-arrow">
+                    →
+                </span>
+
+            </button>
+
+
+            <!-- SAVED ROUTES PREVIEW -->
+            <div class="saved-routes-panel">
+
+                <div class="preference-heading saved-routes-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            SAVED ROUTES
+                        </span>
+
+
+                        <h3>
+                            Multiple commutes, different times
+                        </h3>
+
+                    </div>
+
+                    <button
+                        id="editRoutesBtn"
+                        class="edit-routes-btn"
+                        type="button"
+                    >
+                        Edit
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="savedRoutesList"
+                    class="saved-routes-list"
+                >
+
+                    <article
+                        class="saved-route-item sample-route-item"
+                        data-sample-route="true"
+                    >
+
+                        <button
+                            class="route-order-handle"
+                            type="button"
+                            aria-label="Move route"
+                            title="Move route"
+                        >
+                            ⋮⋮
+                        </button>
+
+                        <div class="saved-route-copy">
+
+                            <strong>
+                                Morning commute
+                            </strong>
+
+                            <span>
+                                Sengkang to Raffles Place - 8:00 AM - alert 20 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill">
+                            Monitoring
+                        </span>
+
+                        <button
+                            class="delete-route-btn"
+                            type="button"
+                        >
+                            Delete
+                        </button>
+
+                    </article>
+
+
+                    <article
+                        class="saved-route-item sample-route-item"
+                        data-sample-route="true"
+                    >
+
+                        <button
+                            class="route-order-handle"
+                            type="button"
+                            aria-label="Move route"
+                            title="Move route"
+                        >
+                            ⋮⋮
+                        </button>
+
+                        <div class="saved-route-copy">
+
+                            <strong>
+                                Evening commute
+                            </strong>
+
+                            <span>
+                                Raffles Place to Sengkang - 6:15 PM - alert 30 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill quiet">
+                            No incident
+                        </span>
+
+                        <button
+                            class="delete-route-btn"
+                            type="button"
+                        >
+                            Delete
+                        </button>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+
+            <!-- MEETING PREFERENCE -->
+            <div class="meeting-preference">
+
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            OPTIONAL FRIEND FEATURE
+                        </span>
+
+
+                        <h3>
+                            Meeting point preference
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+
+                <div class="preference-options">
+
+
+
+                    <!-- NEAREST MEETING POINT -->
+                    <label class="preference-option">
+
+                        <input
+                            type="radio"
+                            name="meetingPreference"
+                            value="nearest"
+                            checked
+                        >
+
+
+                        <div class="preference-card">
+
+
+                            <div class="preference-icon nearest-icon">
+                                ●
+                            </div>
+
+
+                            <div class="preference-text">
+
+                                <strong>
+                                    Nearest meeting point
+                                </strong>
+
+
+                                <span>
+                                    Keep this for trips where you want to meet someone first.
+                                </span>
+
+                            </div>
+
+
+                            <div class="preference-check">
+                                ✓
+                            </div>
+
+                        </div>
+
+                    </label>
+
+
+
+
+                    <!-- NEAREST TRANSFER POINT -->
+                    <label class="preference-option">
+
+                        <input
+                            type="radio"
+                            name="meetingPreference"
+                            value="transfer"
+                        >
+
+
+                        <div class="preference-card">
+
+
+                            <div class="preference-icon transfer-icon">
+                                ↔
+                            </div>
+
+
+                            <div class="preference-text">
+
+                                <strong>
+                                    Nearest transfer point
+                                </strong>
+
+
+                                <span>
+                                    Meet where both routes can change lines before travelling together.
+                                </span>
+
+                            </div>
+
+
+                            <div class="preference-check">
+                                ✓
+                            </div>
+
+                        </div>
+
+                    </label>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- MEET-UP FINDER -->
+            <div class="meetup-finder">
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            MEET-UP FINDER
+                        </span>
+
+                        <h3>
+                            Find restaurants both of you can reach
+                        </h3>
+
+                    </div>
+
+                </div>
+
+                <div class="meetup-grid">
+
+                    <div class="meetup-field">
+                        <label for="meetupUserLocation">
+                            YOUR LOCATION
+                        </label>
+
+                        <input
+                            type="text"
+                            id="meetupUserLocation"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Sengkang"
+                            autocomplete="off"
+                        >
+
+                        <div
+                            id="meetupUserLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
+                    </div>
+
+                    <div class="meetup-field">
+                        <label for="meetupFriendLocation">
+                            FRIEND LOCATION
+                        </label>
+
+                        <input
+                            type="text"
+                            id="meetupFriendLocation"
+                            class="location-autocomplete-input"
+                            placeholder="e.g. Bishan"
+                            autocomplete="off"
+                        >
+
+                        <div
+                            id="meetupFriendLocationSuggestions"
+                            class="location-suggestions hidden"
+                        ></div>
+                    </div>
+
+                    <div class="meetup-field">
+                        <label for="meetupUserMaxTime">
+                            YOUR MAX TRAVEL TIME (MINUTES)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="meetupUserMaxTime"
+                            min="5"
+                            max="120"
+                            value="30"
+                        >
+                    </div>
+
+                    <div class="meetup-field">
+                        <label for="meetupFriendMaxTime">
+                            FRIEND MAX TRAVEL TIME (MINUTES)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="meetupFriendMaxTime"
+                            min="5"
+                            max="120"
+                            value="30"
+                        >
+                    </div>
+
+                    <div class="meetup-field meetup-category-field">
+                        <label for="meetupCategory">
+                            CATEGORY
+                        </label>
+
+                        <select id="meetupCategory">
+                            <option value="breakfast">
+                                Breakfast
+                            </option>
+                            <option value="lunch">
+                                Lunch
+                            </option>
+                            <option value="dinner">
+                                Dinner
+                            </option>
+                            <option value="leisure">
+                                Leisure
+                            </option>
+                            <option value="pet-friendly">
+                                Pet friendly
+                            </option>
+                            <option value="restaurant" selected>
+                                Restaurant
+                            </option>
+                            <option value="custom">
+                                Custom
+                            </option>
+                        </select>
+                    </div>
+
+                    <div
+                        id="meetupCustomCategoryField"
+                        class="meetup-field hidden"
+                    >
+                        <label for="meetupCustomCategory">
+                            CUSTOM CATEGORY
+                        </label>
+
+                        <input
+                            type="text"
+                            id="meetupCustomCategory"
+                            placeholder="e.g. halal cafe, dessert, ramen"
+                        >
+                    </div>
+
+                </div>
+
+                <button
+                    id="findMeetupPlacesBtn"
+                    class="find-button meetup-find-button"
+                    type="button"
+                >
+                    Show restaurants
+                </button>
+
+                <div
+                    id="meetupPlacesStatus"
+                    class="meetup-status"
+                ></div>
+
+                <div
+                    id="meetupPlacesList"
+                    class="meetup-results"
+                ></div>
+
+            </div>
+
+
+            <!-- FIND JOURNEY BUTTON -->
+            <button
+                id="legacyFindButton"
+                class="find-button legacy-hidden"
+                type="button"
+            >
+
+                <span>
+                    Save route alert
+                </span>
+
+
+                <span class="button-arrow">
+                    →
+                </span>
+
+            </button>
+
+
+
+
+            <!-- JOURNEY CODE / FRIEND CONNECTION -->
+            <div class="journey-code-section">
+
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            ADDITIONAL FEATURE
+                        </span>
+
+
+                        <h3>
+                            Share journey with another person
+                        </h3>
+
+
+                        <p class="journey-code-description">
+                            Create a private journey and share the code with your friend,
+                            or enter your friend's code to join their journey.
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- GENERATED JOURNEY CODE -->
+                <div
+                    id="journeyCodeDisplay"
+                    class="journey-code-display hidden"
+                >
+
+                    <span class="journey-code-display-label">
+                        YOUR JOURNEY CODE
+                    </span>
+
+
+                    <strong id="journeyCodeText">
+                        A7K92P
+                    </strong>
+
+
+                    <span class="journey-code-display-help">
+                        Share this code with your friend to connect.
+                    </span>
+
+                </div>
+
+
+
+
+                <!-- JOURNEY CODE CARD -->
+                <div class="journey-code-card">
+
+
+                    <!-- CREATE JOURNEY -->
+                    <button
+                        type="button"
+                        id="createJourneyBtn"
+                        class="create-journey-btn"
+                    >
+
+                        <span>
+                            ＋
+                        </span>
+
+                        Create Journey
+
+                    </button>
+
+
+
+
+                    <!-- OR -->
+                    <div class="journey-or">
+
+                        <span>
+                            OR
+                        </span>
+
+                    </div>
+
+
+
+
+                    <!-- JOIN JOURNEY -->
+                    <div class="join-journey">
+
+
+                        <label for="journeyCodeInput">
+                            Enter your friend's code
+                        </label>
+
+
+                        <div class="journey-code-input-row">
+
+
+                            <input
+                                type="text"
+                                id="journeyCodeInput"
+                                maxlength="6"
+                                placeholder="e.g. A7K92P"
+                                autocomplete="off"
+                            >
+
+
+                            <button
+                                type="button"
+                                id="joinJourneyBtn"
+                                class="join-journey-btn"
+                            >
+                                Join
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+
+
+                    <!-- CONNECTION STATUS -->
+                    <div
+                        id="journeyConnectionStatus"
+                        class="journey-connection-status"
+                    >
+
+                        <span class="connection-status-dot"></span>
+
+
+                        <span id="journeyConnectionText">
+                            Ready to connect
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- SAVED ROUTES PREVIEW -->
+            <div class="saved-routes-panel legacy-hidden">
+
+                <div class="preference-heading">
+
+                    <div>
+
+                        <span class="section-label">
+                            SAVED ROUTES
+                        </span>
+
+
+                        <h3>
+                            Multiple commutes, different times
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+                <div
+                    id="legacySavedRoutesList"
+                    class="saved-routes-list"
+                >
+
+                    <article class="saved-route-item">
+
+                        <div>
+
+                            <strong>
+                                Morning commute
+                            </strong>
+
+                            <span>
+                                Sengkang MRT to Raffles Place - 8:00 AM - alert 20 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill">
+                            Monitoring
+                        </span>
+
+                    </article>
+
+
+                    <article class="saved-route-item">
+
+                        <div>
+
+                            <strong>
+                                Evening commute
+                            </strong>
+
+                            <span>
+                                Raffles Place to Sengkang MRT - 6:15 PM - alert 30 min before
+                            </span>
+
+                        </div>
+
+                        <span class="route-status-pill quiet">
+                            No incident
+                        </span>
+
+                    </article>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- ERROR MESSAGE -->
+            <div
+                id="errorMessage"
+                class="error-message"
+            ></div>
+
+
+        </section>
+
+
+        <!-- ================================================= -->
+        <!-- INCIDENT ALERTS AND ALTERNATIVES -->
+        <!-- ================================================= -->
+
+        <section class="incident-section">
+
+            <div class="incident-card urgent">
+
+                <div>
+
+                    <span class="section-label">
+                        LTA INCIDENT WATCH
+                    </span>
+
+                    <h3>
+                        Public transport delay detected
+                    </h3>
+
+                    <p>
+                        Checking live LTA train service alerts...
+                    </p>
+
+                </div>
+
+                <span class="incident-time">
+                    Check 20 min before
+                </span>
+
+            </div>
+
+        </section>
+
+
+
+
+        <!-- ================================================= -->
+        <!-- ROUTE RESULTS -->
+        <!-- ================================================= -->
+
+        <section
+            id="result"
+            class="results hidden"
+        >
+
+
+            <!-- RECOMMENDATION -->
+            <div class="recommendation-card">
+
+
+                <div class="recommendation-header">
+
+
+                    <span class="eyebrow">
+                        RECOMMENDED
+                    </span>
+
+
+                    <div
+                        class="match-badge"
+                        id="matchBadge"
+                    >
+                        Best match
+                    </div>
+
+                </div>
+
+
+
+
+                <div class="meeting-content">
+
+
+                    <div class="meeting-icon">
+                        ★
+                    </div>
+
+
+                    <div class="meeting-info">
+
+
+                        <span class="small-label">
+                            MEET AT
+                        </span>
+
+
+                        <h2 id="meetingPoint">
+                            Serangoon MRT
+                        </h2>
+
+
+                        <p id="explanation">
+                            Meet here, then travel together to your destination.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+
+
+            <!-- ROUTES -->
+            <div class="route-section">
+
+
+                <div class="section-heading result-heading">
+
+
+                    <div>
+
+                        <span class="section-label">
+                            YOUR JOURNEY
+                        </span>
+
+
+                        <h3>
+                            How you'll get there
+                        </h3>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <div class="route-grid">
+
+
+
+                    <!-- USER ROUTE -->
+                    <div class="route-card">
+
+
+                        <div class="route-card-header">
+
+
+                            <div>
+
+                                <span class="route-label">
+                                    YOUR ROUTE
+                                </span>
+
+
+                                <h4>
+                                    You → Meeting Point
+                                </h4>
+
+                            </div>
+
+
+                            <div class="route-person-icon">
+                                ●
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            id="userRoute"
+                            class="route-summary"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+
+
+
+                    <!-- FRIEND ROUTE -->
+                    <div class="route-card">
+
+
+                        <div class="route-card-header">
+
+
+                            <div>
+
+                                <span class="route-label">
+                                    FRIEND'S ROUTE
+                                </span>
+
+
+                                <h4>
+                                    Friend → Meeting Point
+                                </h4>
+
+                            </div>
+
+
+                            <div class="route-person-icon">
+                                ●
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            id="friendRoute"
+                            class="route-summary"
+                        >
+                            —
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+
+
+                <!-- SHARED JOURNEY -->
+                <div class="shared-card">
+
+
+                    <div class="shared-header">
+
+
+                        <div>
+
+                            <span class="route-label">
+                                SHARED JOURNEY
+                            </span>
+
+
+                            <h4>
+                                From meeting point to destination
+                            </h4>
+
+                        </div>
+
+
+                        <span class="shared-badge">
+                            Together
+                        </span>
+
+                    </div>
+
+
+                    <div
+                        id="sharedRoute"
+                        class="shared-route"
+                    >
+                        —
+                    </div>
+
+                </div>
+
+            </div>
+
+
+        </section>
+
+
+
+
+        <!-- ================================================= -->
+        <!-- LIVE JOURNEY MAP -->
+        <!-- SEPARATE FROM ROUTE RESULTS -->
+        <!-- ================================================= -->
+
+        <section
+            id="liveJourneySection"
+            class="live-map-section hidden"
+        >
+
+
+            <!-- MAP HEADER -->
+            <div class="live-map-header">
+
+
+                <div>
+
+                    <span class="section-label">
+                        LIVE JOURNEY
+                    </span>
+
+
+                    <h3>
+                        Where are you?
+                    </h3>
+
+
+                    <p>
+                        Share your live location while travelling together.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="map-incident-guidance">
+
+                <div>
+                    <span class="section-label">
+                        INCIDENT GUIDANCE
+                    </span>
+
+                    <h3 id="mapIncidentGuidanceHeading">
+                        Preparing incident guidance...
+                    </h3>
+
+                    <p id="mapIncidentGuidanceSummary">
+                        The latest LTA incident summary and commuter suggestions will appear here.
+                    </p>
+                </div>
+
+                <div
+                    id="mapIncidentGuidanceSuggestions"
+                    class="incident-guidance-suggestions"
+                ></div>
+
+            </div>
+
+
+
+
+            <!-- SHARE LOCATION BUTTON -->
+            <button
+                id="shareLocationBtn"
+                class="share-location-btn"
+                type="button"
+            >
+                Share My Location
+            </button>
+
+
+
+
+            <!-- MAP -->
+            <div class="live-map-container">
+
+                <div id="liveMap"></div>
+                <div class="location-legend">
+    <div class="location-legend-item">
+        <span class="legend-dot legend-you"></span>
+        <span>You</span>
+    </div>
+
+    <div class="location-legend-item">
+        <span class="legend-dot legend-friend"></span>
+        <span>Friend</span>
+    </div>
+</div>
+            </div>
+
+
+
+
+            <!-- LOCATION STATUS -->
+            <div
+                id="locationStatus"
+                class="location-status-text"
+            >
+                Location sharing is off
+            </div>
+
+
+
+
+            <!-- MAP LEGEND -->
+            <div class="live-map-legend">
+
+
+                <div class="legend-item">
+
+                    <span class="legend-dot legend-you"></span>
+
+                    <span>
+                        You
+                    </span>
+
+                </div>
+
+
+                <div class="legend-item">
+
+                    <span class="legend-dot legend-friend"></span>
+
+                    <span>
+                        Friend
+                    </span>
+
+                </div>
+
+            </div>
+
+            
+
+        </section>
+<!-- ================================================= -->
+<!-- ROUTE ALERT -->
+<!-- ================================================= -->
+
+<section class="destination-alarm">
+
+    <div class="alarm-header">
+
+        <div>
+
+            <span class="section-label">
+                EXTRA ALERT
+            </span>
+
+            <h3>
+                Destination stop reminder
+            </h3>
+
+            <p>
+                Keep this as an additional reminder after the main route disruption alert.
+            </p>
+
+        </div>
+
+        <div class="alarm-icon">
+            🔔
+        </div>
+
+    </div>
+
+
+    <!-- DESTINATION STOP -->
+
+    <div class="alarm-destination">
+
+        <label for="alarmDestination">
+            DESTINATION STOP
+        </label>
+
+        <input
+            type="text"
+            id="alarmDestination"
+            placeholder="e.g. Orchard MRT"
+            autocomplete="off"
+        >
+
+    </div>
+
+
+    <!-- MRT LINE -->
+
+    <div class="alarm-line">
+
+        <label for="alarmLine">
+            MRT LINE
+        </label>
+
+        <select id="alarmLine">
+
+            <option value="">
+                Select MRT line
+            </option>
+
+            <option value="North South Line">
+                North South Line
+            </option>
+
+            <option value="East West Line">
+                East West Line
+            </option>
+
+            <option value="North East Line">
+                North East Line
+            </option>
+
+            <option value="Circle Line">
+                Circle Line
+            </option>
+
+            <option value="Downtown Line">
+                Downtown Line
+            </option>
+
+        </select>
+
+    </div>
+
+
+    <!-- ALERT DISTANCE -->
+
+    <div class="alarm-options">
+
+        <span class="alarm-label">
+            Alert me:
+        </span>
+
+        <div class="alarm-option-buttons">
+
+            <button
+                type="button"
+                class="alarm-option"
+                data-stops="1"
+            >
+                1 stop
+            </button>
+
+            <button
+                type="button"
+                class="alarm-option"
+                data-stops="2"
+            >
+                2 stops
+            </button>
+
+            <button
+                type="button"
+                class="alarm-option"
+                data-stops="3"
+            >
+                3 stops
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- SET ALARM -->
+
+    <button
+        id="setDestinationAlarmBtn"
+        class="set-alarm-btn"
+        type="button"
+    >
+        Set Stop Reminder
+    </button>
+
+    <button
+    id="cancelDestinationAlarmBtn"
+    class="cancel-alarm-btn"
+    type="button"
+>
+    Cancel Alert
+</button>
+
+
+    <!-- STATUS -->
+
+    <div
+        id="destinationAlarmStatus"
+        class="destination-alarm-status hidden"
+    ></div>
+
+</section>
+
+
+</main>
+
+<nav
+    class="bottom-app-nav"
+    aria-label="Main app sections"
+>
+    <button
+        class="bottom-app-nav-btn active"
+        type="button"
+        data-app-tab-target="commute"
+    >
+        <span class="bottom-app-nav-icon">01</span>
+        <span>Regular</span>
+    </button>
+
+    <button
+        class="bottom-app-nav-btn"
+        type="button"
+        data-app-tab-target="meetup"
+    >
+        <span class="bottom-app-nav-icon">02</span>
+        <span>Meetup</span>
+    </button>
+
+    <button
+        class="bottom-app-nav-btn"
+        type="button"
+        data-app-tab-target="reminder"
+    >
+        <span class="bottom-app-nav-icon">03</span>
+        <span>Wake Up</span>
+    </button>
+</nav>
+
+
+<!-- FOOTER -->
+
+<footer>
+
+    <p>
+        CommuteTogether · Smart public transport planning
+    </p>
+
+</footer>
+
+
+<!-- LEAFLET JAVASCRIPT -->
+
+<script
+    src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+></script>
+
+
+<!-- SOCKET.IO -->
+
+<script src="/socket.io/socket.io.js"></script>
+
+
+<!-- YOUR JAVASCRIPT -->
+
+<script src="app.js"></script>
+
+
+</body>
+
+</html>

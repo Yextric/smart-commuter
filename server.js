@@ -10,7 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve the frontend files
-app.use(express.static(__dirname));
+app.use(express.static("public"));
 
 
 // =====================================================
