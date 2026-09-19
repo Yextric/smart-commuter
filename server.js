@@ -832,9 +832,12 @@ app.post("/api/meetup/gemini-places", async (req, res) => {
             [
                 "Find real food and drink places in Singapore suitable for two people meeting by public transport.",
                 "Use the supplied locations, category, and travel limits to choose central or practical options.",
-                "Prefer places that are likely to exist and are near MRT stations, but do not invent exact shop details.",
+                "Only suggest real places in Singapore.",
+                "Each result must include the place name and a usable Singapore address.",
+                "Prefer places near MRT stations or easy public transport access.",
+                "Do not include places outside Singapore.",
                 "Return strict JSON only with this shape:",
-                "{\"places\":[{\"name\":\"place name\",\"area\":\"area or mall\",\"category\":\"food category\",\"notes\":\"short reason\",\"userTravel\":number,\"friendTravel\":number}]} ",
+                "{\"places\":[{\"name\":\"place name\",\"address\":\"full Singapore address\",\"area\":\"area or mall\",\"category\":\"food category\",\"notes\":\"short reason\",\"userTravel\":number,\"friendTravel\":number}]}",
                 `Your location: ${userLocation}`,
                 `Friend location: ${friendLocation}`,
                 `Requested category: ${category}`,
@@ -869,7 +872,7 @@ app.post("/api/meetup/gemini-places", async (req, res) => {
                             generationConfig: {
                                 temperature: 0.2,
                                 maxOutputTokens: 900,
-                                responseMimeType:
+                                response_mime_type:
                                     "application/json"
                             }
                         })
@@ -903,14 +906,16 @@ app.post("/api/meetup/gemini-places", async (req, res) => {
                     .filter(place =>
                         place &&
                         place.name &&
-                        place.area
+                        place.address
                     )
                     .slice(0, 6)
                     .map(place => ({
                         name:
                             String(place.name),
+                        address:
+                            String(place.address),
                         area:
-                            String(place.area),
+                            String(place.area || "Singapore"),
                         category:
                             String(place.category || category),
                         notes:

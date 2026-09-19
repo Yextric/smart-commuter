@@ -8782,7 +8782,8 @@ function renderMeetupPlaceCards(
         matches.map(place => `
             <article class="meetup-place-card">
                 <strong>${escapeHtml(place.name)}</strong>
-                <span>${escapeHtml(place.area)} - ${escapeHtml(place.notes)}</span>
+                <span>${escapeHtml(place.address || place.area || "Singapore")}</span>
+                <span>${escapeHtml(place.notes || "Suggested for this meetup.")}</span>
                 <div class="meetup-place-meta">
                     <span class="meetup-chip">You: ${escapeHtml(place.userTravel)} min</span>
                     <span class="meetup-chip">Friend: ${escapeHtml(place.friendTravel)} min</span>
