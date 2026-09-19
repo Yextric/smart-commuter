@@ -5393,20 +5393,10 @@ async function checkDestinationAlarm(
         // SEND DEVICE NOTIFICATION
         // -----------------------------------------
 
-        if (
-            "Notification" in window &&
-            Notification.permission === "granted"
-        ) {
-
-            new Notification(
-                "CommuteTogether",
-                {
-                    body:
-                        message
-                }
-            );
-
-        }
+        sendCommuteNotification(
+            "CommuteTogether",
+            message
+        );
 
 
         console.log(
@@ -5616,11 +5606,9 @@ if (setDestinationAlarmBtn) {
                 const message =
                     `Get ready to alight at ${destinationAlertStation}!`;
 
-                new Notification(
+                sendCommuteNotification(
                     "CommuteTogether",
-                    {
-                        body: message
-                    }
+                    message
                 );
 
                 console.log(
@@ -6077,6 +6065,50 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+function sendCommuteNotification(
+    title,
+    body,
+    onClick
+) {
+    if (
+        !("Notification" in window) ||
+        Notification.permission !== "granted"
+    ) {
+        return null;
+    }
+
+    if ("vibrate" in navigator) {
+        navigator.vibrate([
+            300,
+            150,
+            300
+        ]);
+    }
+
+    const notification =
+        new Notification(
+            title,
+            {
+                body:
+                    body,
+                vibrate: [
+                    300,
+                    150,
+                    300
+                ],
+                tag:
+                    "commute-together-alert"
+            }
+        );
+
+    if (typeof onClick === "function") {
+        notification.onclick =
+            onClick;
+    }
+
+    return notification;
 }
 
 function showCommuterMessage(message) {
@@ -6785,24 +6817,18 @@ function scheduleRouteReminder(route) {
                         ? `${activeAlerts.length} LTA disruption${activeAlerts.length === 1 ? "" : "s"} now affect${activeAlerts.length === 1 ? "s" : ""} ${route.name || "your route"}.`
                         : `The LTA disruption affecting ${route.name || "your route"} has cleared.`;
 
-                    const notification =
-                        new Notification(
-                            route.name ||
-                                "Route disruption",
-                            {
-                                body:
-                                    message
-                            }
-                        );
-
-                    notification.onclick =
+                    sendCommuteNotification(
+                        route.name ||
+                            "Route disruption",
+                        message,
                         () => {
                             window.focus();
                             window.location.href =
                                 getRouteDetailUrl(
                                     route.id
                                 );
-                        };
+                        }
+                    );
             }
         };
 
@@ -8710,7 +8736,63 @@ function placeMatchesCategory(place, category) {
         place.notes.toLowerCase().includes(cleanCategory);
 }
 
-function renderMeetupPlaces() {
+function renderMeetupFallbackPlaces(
+    userLocation,
+    friendLocation,
+    userMaxTime,
+    friendMaxTime,
+    category
+) {
+    const userZone =
+        getMeetupZone(userLocation);
+
+    const friendZone =
+        getMeetupZone(friendLocation);
+
+    return meetupPlaces
+        .map(place => ({
+            ...place,
+            userTravel:
+                place.travel[userZone] || place.travel.central,
+            friendTravel:
+                place.travel[friendZone] || place.travel.central
+        }))
+        .filter(place =>
+            place.userTravel <= userMaxTime &&
+            place.friendTravel <= friendMaxTime &&
+            placeMatchesCategory(place, category)
+        )
+        .sort((a, b) =>
+            (a.userTravel + a.friendTravel) -
+            (b.userTravel + b.friendTravel)
+        );
+}
+
+function renderMeetupPlaceCards(
+    matches,
+    category,
+    source
+) {
+    meetupPlacesStatus.textContent =
+        matches.length
+            ? `${matches.length} place${matches.length === 1 ? "" : "s"} found for ${category}${source === "gemini" ? " by Gemini" : ""}.`
+            : "No places matched those time limits. Try increasing the maximum travel time.";
+
+    meetupPlacesList.innerHTML =
+        matches.map(place => `
+            <article class="meetup-place-card">
+                <strong>${escapeHtml(place.name)}</strong>
+                <span>${escapeHtml(place.area)} - ${escapeHtml(place.notes)}</span>
+                <div class="meetup-place-meta">
+                    <span class="meetup-chip">You: ${escapeHtml(place.userTravel)} min</span>
+                    <span class="meetup-chip">Friend: ${escapeHtml(place.friendTravel)} min</span>
+                    <span class="meetup-chip">${escapeHtml(place.category || place.categories?.[0] || category)}</span>
+                </div>
+            </article>
+        `).join("");
+}
+
+async function renderMeetupPlaces() {
 
     if (!meetupPlacesList || !meetupPlacesStatus) {
         return;
@@ -8746,51 +8828,68 @@ function renderMeetupPlaces() {
         return;
     }
 
-    const userZone =
-        getMeetupZone(userLocation);
-
-    const friendZone =
-        getMeetupZone(friendLocation);
-
     const category =
         getMeetupCategory();
 
-    const matches =
-        meetupPlaces
-            .map(place => ({
-                ...place,
-                userTravel:
-                    place.travel[userZone] || place.travel.central,
-                friendTravel:
-                    place.travel[friendZone] || place.travel.central
-            }))
-            .filter(place =>
-                place.userTravel <= userMaxTime &&
-                place.friendTravel <= friendMaxTime &&
-                placeMatchesCategory(place, category)
-            )
-            .sort((a, b) =>
-                (a.userTravel + a.friendTravel) -
-                (b.userTravel + b.friendTravel)
+    meetupPlacesStatus.textContent =
+        "Searching for suitable places...";
+
+    meetupPlacesList.innerHTML = "";
+
+    try {
+        const response =
+            await fetch(
+                "/api/meetup/gemini-places",
+                {
+                    method:
+                        "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            userLocation,
+                            friendLocation,
+                            category,
+                            userMaxTime,
+                            friendMaxTime
+                        })
+                }
             );
 
-    meetupPlacesStatus.textContent =
-        matches.length
-            ? `${matches.length} place${matches.length === 1 ? "" : "s"} found for ${category}.`
-            : "No places matched those time limits. Try increasing the maximum travel time.";
+        if (!response.ok) {
+            throw new Error(
+                "Gemini meetup search failed"
+            );
+        }
 
-    meetupPlacesList.innerHTML =
-        matches.map(place => `
-            <article class="meetup-place-card">
-                <strong>${escapeHtml(place.name)}</strong>
-                <span>${escapeHtml(place.area)} - ${escapeHtml(place.notes)}</span>
-                <div class="meetup-place-meta">
-                    <span class="meetup-chip">You: ${escapeHtml(place.userTravel)} min</span>
-                    <span class="meetup-chip">Friend: ${escapeHtml(place.friendTravel)} min</span>
-                    <span class="meetup-chip">${escapeHtml(place.categories[0])}</span>
-                </div>
-            </article>
-        `).join("");
+        const data =
+            await response.json();
+
+        renderMeetupPlaceCards(
+            data.places || [],
+            category,
+            data.source
+        );
+    } catch (error) {
+        console.error(
+            "Meetup search error:",
+            error
+        );
+
+        renderMeetupPlaceCards(
+            renderMeetupFallbackPlaces(
+                userLocation,
+                friendLocation,
+                userMaxTime,
+                friendMaxTime,
+                category
+            ),
+            category,
+            "fallback"
+        );
+    }
 }
 
 if (meetupCategorySelect && meetupCustomCategoryField) {
