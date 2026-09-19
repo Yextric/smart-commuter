@@ -79,7 +79,7 @@ async function getOneMapToken() {
 app.get("/", (req, res) => {
 
     res.sendFile(
-        __dirname + "/index.html"
+        __dirname + "/public/index.html"
     );
 
 });
