@@ -6170,8 +6170,6 @@ function updateActiveCommuterUser(updates) {
     saveCommuterUser(
         activeCommuterUser
     );
-
-    syncCloudCommuterData();
 }
 
 function applyLoginState() {
@@ -6297,120 +6295,6 @@ function saveSavedRoutes(routes) {
         SAVED_ROUTES_STORAGE_KEY,
         JSON.stringify(routes)
     );
-
-    syncCloudCommuterData();
-}
-
-async function syncCloudCommuterData() {
-    if (!activeCommuterUser) {
-        return;
-    }
-
-    try {
-        const response =
-            await fetch(
-            "/api/commuter-data",
-            {
-                method:
-                    "PUT",
-                headers: {
-                    "Content-Type":
-                        "application/json"
-                },
-                body:
-                    JSON.stringify({
-                        phone:
-                            activeCommuterUser.phone,
-                        name:
-                            activeCommuterUser.name,
-                        elderlyMode:
-                            Boolean(activeCommuterUser.elderlyMode),
-                        routes:
-                            loadSavedRoutes(),
-                        decisions:
-                            loadRouteDecisions()
-                    })
-            }
-            );
-
-        if (!response.ok) {
-            throw new Error(
-                `Cloud save failed: ${response.status}`
-            );
-        }
-    } catch (error) {
-        console.warn(
-            "Cloud data sync unavailable; keeping local cache.",
-            error
-        );
-    }
-}
-
-async function loadCloudCommuterData() {
-    if (!activeCommuterUser) {
-        return;
-    }
-
-    try {
-        const response =
-            await fetch(
-                `/api/commuter-data?phone=${encodeURIComponent(activeCommuterUser.phone)}`
-            );
-
-        if (!response.ok) {
-            return;
-        }
-
-        const result =
-            await response.json();
-
-        if (!result.data) {
-            await syncCloudCommuterData();
-            return;
-        }
-
-        const cloudData =
-            result.data;
-
-        saveCommuterUser({
-            ...activeCommuterUser,
-            name:
-                cloudData.name,
-            elderlyMode:
-                Boolean(cloudData.elderlyMode)
-        });
-
-        activeCommuterUser = {
-            ...activeCommuterUser,
-            name:
-                cloudData.name,
-            elderlyMode:
-                Boolean(cloudData.elderlyMode)
-        };
-
-        if (Array.isArray(cloudData.routes)) {
-            localStorage.setItem(
-                SAVED_ROUTES_STORAGE_KEY,
-                JSON.stringify(cloudData.routes)
-            );
-        }
-
-        if (cloudData.decisions && typeof cloudData.decisions === "object") {
-            localStorage.setItem(
-                ROUTE_DECISIONS_STORAGE_KEY,
-                JSON.stringify(cloudData.decisions)
-            );
-        }
-
-        renderSavedRoutes();
-        scheduleAllRouteReminders();
-        applyLoginState();
-    } catch (error) {
-        console.warn(
-            "Cloud data load unavailable; using local cache.",
-            error
-        );
-    }
 }
 
 function getRouteDetailUrl(routeId) {
@@ -6600,8 +6484,6 @@ function saveRouteDecision(route, decision) {
         ROUTE_DECISIONS_STORAGE_KEY,
         JSON.stringify(decisions)
     );
-
-    syncCloudCommuterData();
 }
 
 function getTodaysRouteDecision(route) {
@@ -7657,7 +7539,6 @@ if (loginForm) {
             renderSavedRoutes();
             scheduleAllRouteReminders();
             loadLtaTrainAlerts();
-            loadCloudCommuterData();
         }
     );
 }
@@ -7706,7 +7587,6 @@ if (elderlyModeToggle) {
 }
 
 applyLoginState();
-loadCloudCommuterData();
 
 
 // =====================================================

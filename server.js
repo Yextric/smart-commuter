@@ -3,138 +3,11 @@ const cors = require("cors");
 const GtfsRealtimeBindings =
     require("gtfs-realtime-bindings");
 require("dotenv").config();
-const {
-    getCommuterData,
-    saveCommuterData,
-    createJourney: createStoredJourney,
-    journeyExists: storedJourneyExists,
-    deleteJourney: deleteStoredJourney,
-    checkDatabase,
-    isDatabaseEnabled
-} = require("./db");
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
-
-app.get("/api/storage/status", async (req, res) => {
-    const status =
-        await checkDatabase();
-
-    res.status(
-        status.connected ? 200 : 503
-    ).json({
-        databaseEnabled:
-            status.enabled,
-        databaseConnected:
-            status.connected,
-        error:
-            status.error
-    });
-});
-
-app.get("/api/commuter-data", async (req, res) => {
-    const phone =
-        String(req.query.phone || "").replace(/\D/g, "");
-
-    if (!phone) {
-        return res.status(400).json({
-            error:
-                "Phone number is required"
-        });
-    }
-
-    if (!isDatabaseEnabled()) {
-        return res.status(503).json({
-            error:
-                "Cloud SQL is not configured"
-        });
-    }
-
-    try {
-        const data =
-            await getCommuterData(phone);
-
-        return res.json({
-            data:
-                data
-        });
-    } catch (error) {
-        console.error(
-            "Unable to load commuter data:",
-            error
-        );
-
-        return res.status(500).json({
-            error:
-                "Unable to load commuter data"
-        });
-    }
-});
-
-app.put("/api/commuter-data", async (req, res) => {
-    const body =
-        req.body || {};
-
-    const phone =
-        String(body.phone || "").replace(/\D/g, "");
-
-    if (!phone || !body.name) {
-        return res.status(400).json({
-            error:
-                "Phone number and name are required"
-        });
-    }
-
-    if (!isDatabaseEnabled()) {
-        return res.status(503).json({
-            error:
-                "Cloud SQL is not configured"
-        });
-    }
-
-    try {
-        const saved =
-            await saveCommuterData({
-            phone,
-            name:
-                String(body.name).slice(0, 120),
-            elderlyMode:
-                Boolean(body.elderlyMode),
-            routes:
-                Array.isArray(body.routes)
-                    ? body.routes
-                    : [],
-            decisions:
-                body.decisions && typeof body.decisions === "object"
-                    ? body.decisions
-                    : {}
-            });
-
-        if (!saved) {
-            return res.status(503).json({
-                error:
-                    "Cloud SQL is not available"
-            });
-        }
-
-        return res.json({
-            saved:
-                true
-        });
-    } catch (error) {
-        console.error(
-            "Unable to save commuter data:",
-            error
-        );
-
-        return res.status(500).json({
-            error:
-                "Unable to save commuter data"
-        });
-    }
-});
 
 // Serve the frontend files
 app.use(express.static("public"));
@@ -1494,33 +1367,10 @@ io.on(
 
         socket.on(
             "create-journey",
-            async callback => {
+            callback => {
 
                 const code =
                     generateJourneyCode();
-
-                try {
-                    await createStoredJourney(
-                        code
-                    );
-                } catch (error) {
-                    console.error(
-                        "Unable to persist journey:",
-                        error
-                    );
-
-                    if (typeof callback === "function") {
-                        callback({
-                            success:
-                                false,
-                            message:
-                                "Unable to create journey"
-                        });
-                    }
-
-                    return;
-                }
-
 
                 // Create journey
                 journeys.set(
@@ -1571,7 +1421,7 @@ io.on(
 
         socket.on(
             "join-journey",
-            async (
+            (
                 rawCode,
                 callback
             ) => {
@@ -1588,28 +1438,12 @@ io.on(
                 // CHECK CODE
                 // -----------------------------------------
 
-                let journeyInMemory =
-                    journeys.has(journeyCode);
-
                 if (
-                    journeyCode &&
-                    !journeyInMemory &&
-                    isDatabaseEnabled()
+                    !journeyCode ||
+                    !journeys.has(
+                        journeyCode
+                    )
                 ) {
-                    journeyInMemory =
-                        await storedJourneyExists(
-                            journeyCode
-                        );
-
-                    if (journeyInMemory) {
-                        journeys.set(
-                            journeyCode,
-                            new Set()
-                        );
-                    }
-                }
-
-                if (!journeyCode || !journeyInMemory) {
 
                     if (
                         typeof callback ===
@@ -1878,14 +1712,6 @@ io.on(
                         journeyExpiryTimers.delete(journeyCode);
                     }
 
-                    deleteStoredJourney(
-                        journeyCode
-                    ).catch(error => {
-                        console.error(
-                            "Unable to delete journey:",
-                            error
-                        );
-                    });
                 }
             }
         );
@@ -1961,14 +1787,6 @@ io.on(
                                     journeys.get(journeyCode).size === 0
                                 ) {
                                     journeys.delete(journeyCode);
-                                    deleteStoredJourney(
-                                        journeyCode
-                                    ).catch(error => {
-                                        console.error(
-                                            "Unable to expire journey:",
-                                            error
-                                        );
-                                    });
                                 }
 
                                 journeyExpiryTimers.delete(
