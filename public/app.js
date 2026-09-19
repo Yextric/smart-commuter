@@ -3901,9 +3901,7 @@ async function handleLocationUpdate(
     // -----------------------------------------
 
     updateLocationStatus(
-        Number.isFinite(heading)
-            ? `Location shared · Facing ${Math.round(heading)}° · Accuracy ±${Math.round(accuracy)}m`
-            : `Location shared · Facing direction unavailable · Accuracy ±${Math.round(accuracy)}m`
+        "Location sharing is on"
     );
 
 
@@ -3942,6 +3940,12 @@ function stopLocationSharing() {
         "Location sharing stopped."
     );
 
+    if (shareLocationBtn) {
+        shareLocationBtn.classList.remove(
+            "active"
+        );
+    }
+
 }
 
 
@@ -3962,6 +3966,28 @@ function updateLocationStatus(
 
         status.textContent =
             message;
+
+        const isActive =
+            /sharing is on|getting your location/i.test(
+                message
+            );
+
+        status.classList.toggle(
+            "active",
+            isActive
+        );
+
+        if (shareLocationBtn) {
+            shareLocationBtn.classList.toggle(
+                "active",
+                isActive
+            );
+
+            shareLocationBtn.textContent =
+                isActive
+                    ? "Sharing Location"
+                    : "Share My Location";
+        }
 
     }
 
