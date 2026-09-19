@@ -46,10 +46,40 @@ async function ensureSchema() {
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
                 expires_at TIMESTAMP NULL
             )
-        `)).then(() => true);
+        `)).then(() => true).catch(error => {
+            schemaReady = null;
+            throw error;
+        });
     }
 
     return schemaReady;
+}
+
+async function checkDatabase() {
+    if (!pool) {
+        return {
+            enabled: false,
+            connected: false,
+            error: "Database variables are not configured"
+        };
+    }
+
+    try {
+        await pool.execute("SELECT 1 AS ok");
+        await ensureSchema();
+
+        return {
+            enabled: true,
+            connected: true,
+            error: ""
+        };
+    } catch (error) {
+        return {
+            enabled: true,
+            connected: false,
+            error: error.code || "DATABASE_CONNECTION_FAILED"
+        };
+    }
 }
 
 async function getCommuterData(phone) {
@@ -174,5 +204,6 @@ module.exports = {
     createJourney,
     journeyExists,
     deleteJourney,
+    checkDatabase,
     isDatabaseEnabled
 };

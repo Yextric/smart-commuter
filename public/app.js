@@ -6281,7 +6281,8 @@ async function syncCloudCommuterData() {
     }
 
     try {
-        await fetch(
+        const response =
+            await fetch(
             "/api/commuter-data",
             {
                 method:
@@ -6304,7 +6305,13 @@ async function syncCloudCommuterData() {
                             loadRouteDecisions()
                     })
             }
-        );
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `Cloud save failed: ${response.status}`
+            );
+        }
     } catch (error) {
         console.warn(
             "Cloud data sync unavailable; keeping local cache.",

@@ -9,6 +9,7 @@ const {
     createJourney: createStoredJourney,
     journeyExists: storedJourneyExists,
     deleteJourney: deleteStoredJourney,
+    checkDatabase,
     isDatabaseEnabled
 } = require("./db");
 
@@ -17,10 +18,19 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/api/storage/status", (req, res) => {
-    res.json({
+app.get("/api/storage/status", async (req, res) => {
+    const status =
+        await checkDatabase();
+
+    res.status(
+        status.connected ? 200 : 503
+    ).json({
         databaseEnabled:
-            isDatabaseEnabled()
+            status.enabled,
+        databaseConnected:
+            status.connected,
+        error:
+            status.error
     });
 });
 
@@ -85,7 +95,8 @@ app.put("/api/commuter-data", async (req, res) => {
     }
 
     try {
-        await saveCommuterData({
+        const saved =
+            await saveCommuterData({
             phone,
             name:
                 String(body.name).slice(0, 120),
@@ -99,7 +110,14 @@ app.put("/api/commuter-data", async (req, res) => {
                 body.decisions && typeof body.decisions === "object"
                     ? body.decisions
                     : {}
-        });
+            });
+
+        if (!saved) {
+            return res.status(503).json({
+                error:
+                    "Cloud SQL is not available"
+            });
+        }
 
         return res.json({
             saved:
