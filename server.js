@@ -1134,6 +1134,12 @@ const io =
 const journeys =
     new Map();
 
+const journeyExpiryTimers =
+    new Map();
+
+const JOURNEY_RECONNECT_WINDOW_MS =
+    5 * 60 * 1000;
+
 
 // =====================================================
 // GENERATE JOURNEY CODE
@@ -1299,6 +1305,16 @@ io.on(
                     journeys.get(
                         journeyCode
                     );
+
+                const expiryTimer =
+                    journeyExpiryTimers.get(
+                        journeyCode
+                    );
+
+                if (expiryTimer) {
+                    clearTimeout(expiryTimer);
+                    journeyExpiryTimers.delete(journeyCode);
+                }
 
 
                 // -----------------------------------------
@@ -1519,6 +1535,16 @@ io.on(
 
                 if (members.size === 0) {
                     journeys.delete(journeyCode);
+
+                    const expiryTimer =
+                        journeyExpiryTimers.get(
+                            journeyCode
+                        );
+
+                    if (expiryTimer) {
+                        clearTimeout(expiryTimer);
+                        journeyExpiryTimers.delete(journeyCode);
+                    }
                 }
             }
         );
@@ -1586,13 +1612,31 @@ io.on(
                     members.size === 0
                 ) {
 
-                    journeys.delete(
-                        journeyCode
+                    const expiryTimer =
+                        setTimeout(
+                            () => {
+                                if (
+                                    journeys.has(journeyCode) &&
+                                    journeys.get(journeyCode).size === 0
+                                ) {
+                                    journeys.delete(journeyCode);
+                                }
+
+                                journeyExpiryTimers.delete(
+                                    journeyCode
+                                );
+                            },
+                            JOURNEY_RECONNECT_WINDOW_MS
+                        );
+
+                    journeyExpiryTimers.set(
+                        journeyCode,
+                        expiryTimer
                     );
 
 
                     console.log(
-                        `Journey ${journeyCode} deleted`
+                        `Journey ${journeyCode} available for reconnect`
                     );
 
                 }

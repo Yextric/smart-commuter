@@ -4162,6 +4162,9 @@ socket.on(
 // Current connected journey code
 let journeyCode = null;
 
+const SAVED_JOURNEY_CODE_KEY =
+    "commuteTogetherJourneyCode";
+
 
 // Whether this device has successfully
 // joined a journey
@@ -4211,6 +4214,76 @@ const leaveJourneyBtn =
     document.getElementById(
         "leaveJourneyBtn"
     );
+
+function saveJourneyCode(code) {
+    if (code) {
+        localStorage.setItem(
+            SAVED_JOURNEY_CODE_KEY,
+            code
+        );
+    }
+}
+
+function clearSavedJourneyCode() {
+    localStorage.removeItem(
+        SAVED_JOURNEY_CODE_KEY
+    );
+}
+
+function showConnectedJourney(message) {
+    if (journeyCodeText) {
+        journeyCodeText.textContent = journeyCode;
+    }
+
+    if (journeyCodeDisplay) {
+        journeyCodeDisplay.classList.remove("hidden");
+    }
+
+    if (journeyCodeInput) {
+        journeyCodeInput.value = journeyCode;
+    }
+
+    updateJourneyConnectionStatus(
+        true,
+        message
+    );
+
+    showLiveJourneyMap();
+}
+
+function restoreSavedJourney() {
+    const savedCode =
+        localStorage.getItem(
+            SAVED_JOURNEY_CODE_KEY
+        );
+
+    if (!savedCode || savedCode.length !== 6) {
+        return;
+    }
+
+    journeyCode = savedCode;
+
+    socket.emit(
+        "join-journey",
+        savedCode,
+        response => {
+            if (!response || !response.success) {
+                journeyCode = null;
+                clearSavedJourneyCode();
+                updateJourneyConnectionStatus(
+                    false,
+                    "Your previous journey has expired"
+                );
+                return;
+            }
+
+            journeyCode = response.code;
+            showConnectedJourney(
+                "Journey restored after refresh"
+            );
+        }
+    );
+}
 
 
 // =====================================================
@@ -4377,6 +4450,8 @@ socket.on(
             "Ready to create or join a journey"
         );
 
+        restoreSavedJourney();
+
     }
 );
 
@@ -4493,6 +4568,10 @@ if (createJourneyBtn) {
 
                     journeyCode =
                         response.code;
+
+                    saveJourneyCode(
+                        journeyCode
+                    );
 
                     journeyConnected =
                         true;
@@ -4698,6 +4777,10 @@ if (joinJourneyBtn) {
                     journeyCode =
                         response.code;
 
+                    saveJourneyCode(
+                        journeyCode
+                    );
+
                     journeyConnected =
                         true;
 
@@ -4876,6 +4959,7 @@ if (leaveJourneyBtn) {
             }
 
             journeyCode = null;
+            clearSavedJourneyCode();
             resetLiveJourneyMap();
 
             if (journeyCodeInput) {
