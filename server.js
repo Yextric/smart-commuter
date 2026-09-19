@@ -79,7 +79,7 @@ async function getOneMapToken() {
 app.get("/", (req, res) => {
 
     res.sendFile(
-        __dirname + "/index.html"
+        __dirname + "/public/index.html"
     );
 
 });
@@ -788,6 +788,165 @@ function getFallbackIncidentDecision(route, alert) {
     };
 }
 
+app.post("/api/meetup/gemini-places", async (req, res) => {
+    const apiKey =
+        process.env.GEMINI_API_KEY;
+
+    const userLocation =
+        req.body && req.body.userLocation
+            ? String(req.body.userLocation).trim()
+            : "";
+
+    const friendLocation =
+        req.body && req.body.friendLocation
+            ? String(req.body.friendLocation).trim()
+            : "";
+
+    const category =
+        req.body && req.body.category
+            ? String(req.body.category).trim()
+            : "restaurant";
+
+    const userMaxTime =
+        Number(req.body && req.body.userMaxTime) || 30;
+
+    const friendMaxTime =
+        Number(req.body && req.body.friendMaxTime) || 30;
+
+    if (!userLocation || !friendLocation) {
+        return res.status(400).json({
+            error:
+                "Both meetup locations are required"
+        });
+    }
+
+    if (!apiKey) {
+        return res.status(503).json({
+            error:
+                "Gemini API key is not configured"
+        });
+    }
+
+    try {
+        const prompt =
+            [
+                "Find real food and drink places in Singapore suitable for two people meeting by public transport.",
+                "Use the supplied locations, category, and travel limits to choose central or practical options.",
+                "Prefer places that are likely to exist and are near MRT stations, but do not invent exact shop details.",
+                "Return strict JSON only with this shape:",
+                "{\"places\":[{\"name\":\"place name\",\"area\":\"area or mall\",\"category\":\"food category\",\"notes\":\"short reason\",\"userTravel\":number,\"friendTravel\":number}]} ",
+                `Your location: ${userLocation}`,
+                `Friend location: ${friendLocation}`,
+                `Requested category: ${category}`,
+                `Your maximum travel time: ${userMaxTime} minutes`,
+                `Friend maximum travel time: ${friendMaxTime} minutes`
+            ].join("\n");
+
+        const response =
+            await fetch(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+                {
+                    method:
+                        "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json",
+                        "x-goog-api-key":
+                            apiKey
+                    },
+                    body:
+                        JSON.stringify({
+                            contents: [
+                                {
+                                    parts: [
+                                        {
+                                            text:
+                                                prompt
+                                        }
+                                    ]
+                                }
+                            ],
+                            generationConfig: {
+                                temperature: 0.2,
+                                maxOutputTokens: 900,
+                                responseMimeType:
+                                    "application/json"
+                            }
+                        })
+                }
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `Gemini meetup request failed: ${response.status}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+        const text =
+            data.candidates &&
+            data.candidates[0] &&
+            data.candidates[0].content &&
+            data.candidates[0].content.parts &&
+            data.candidates[0].content.parts[0]
+                ? data.candidates[0].content.parts[0].text
+                : "";
+
+        const parsed =
+            extractGeminiJson(text);
+
+        const places =
+            parsed && Array.isArray(parsed.places)
+                ? parsed.places
+                    .filter(place =>
+                        place &&
+                        place.name &&
+                        place.area
+                    )
+                    .slice(0, 6)
+                    .map(place => ({
+                        name:
+                            String(place.name),
+                        area:
+                            String(place.area),
+                        category:
+                            String(place.category || category),
+                        notes:
+                            String(place.notes || "Suggested for this meetup."),
+                        userTravel:
+                            Number(place.userTravel) || userMaxTime,
+                        friendTravel:
+                            Number(place.friendTravel) || friendMaxTime
+                    }))
+                : [];
+
+        if (places.length === 0) {
+            throw new Error(
+                "Gemini returned no valid meetup places"
+            );
+        }
+
+        return res.json({
+            source:
+                "gemini",
+            places:
+                places
+        });
+    } catch (error) {
+        console.error(
+            "Gemini meetup search error:",
+            error
+        );
+
+        return res.status(502).json({
+            error:
+                "Unable to search meetup places with Gemini"
+        });
+    }
+});
+
 app.post("/api/incidents/gemini-decision", async (req, res) => {
     const apiKey =
         process.env.GEMINI_API_KEY;
@@ -1134,6 +1293,12 @@ const io =
 const journeys =
     new Map();
 
+const journeyExpiryTimers =
+    new Map();
+
+const JOURNEY_RECONNECT_WINDOW_MS =
+    5 * 60 * 1000;
+
 
 // =====================================================
 // GENERATE JOURNEY CODE
@@ -1300,6 +1465,16 @@ io.on(
                         journeyCode
                     );
 
+                const expiryTimer =
+                    journeyExpiryTimers.get(
+                        journeyCode
+                    );
+
+                if (expiryTimer) {
+                    clearTimeout(expiryTimer);
+                    journeyExpiryTimers.delete(journeyCode);
+                }
+
 
                 // -----------------------------------------
                 // ONLY ALLOW 2 PEOPLE
@@ -1446,6 +1621,14 @@ io.on(
                         data.longitude
                     );
 
+                const heading =
+                    typeof data.heading === "number" &&
+                    Number.isFinite(data.heading) &&
+                    data.heading >= 0 &&
+                    data.heading < 360
+                        ? data.heading
+                        : null;
+
 
                 console.log(
                     "Location received:",
@@ -1457,7 +1640,10 @@ io.on(
                             latitude,
 
                         longitude:
-                            longitude
+                            longitude,
+
+                        heading:
+                            heading
                     }
                 );
 
@@ -1479,6 +1665,46 @@ io.on(
                     }
                 );
 
+            }
+        );
+
+        socket.on(
+            "leave-journey",
+            () => {
+                const journeyCode =
+                    socket.data.journeyCode;
+
+                if (
+                    !journeyCode ||
+                    !journeys.has(journeyCode)
+                ) {
+                    return;
+                }
+
+                const members =
+                    journeys.get(journeyCode);
+
+                members.delete(socket.id);
+                socket.leave(journeyCode);
+                socket.data.journeyCode = null;
+
+                socket.to(journeyCode).emit(
+                    "friend-left"
+                );
+
+                if (members.size === 0) {
+                    journeys.delete(journeyCode);
+
+                    const expiryTimer =
+                        journeyExpiryTimers.get(
+                            journeyCode
+                        );
+
+                    if (expiryTimer) {
+                        clearTimeout(expiryTimer);
+                        journeyExpiryTimers.delete(journeyCode);
+                    }
+                }
             }
         );
 
@@ -1545,13 +1771,31 @@ io.on(
                     members.size === 0
                 ) {
 
-                    journeys.delete(
-                        journeyCode
+                    const expiryTimer =
+                        setTimeout(
+                            () => {
+                                if (
+                                    journeys.has(journeyCode) &&
+                                    journeys.get(journeyCode).size === 0
+                                ) {
+                                    journeys.delete(journeyCode);
+                                }
+
+                                journeyExpiryTimers.delete(
+                                    journeyCode
+                                );
+                            },
+                            JOURNEY_RECONNECT_WINDOW_MS
+                        );
+
+                    journeyExpiryTimers.set(
+                        journeyCode,
+                        expiryTimer
                     );
 
 
                     console.log(
-                        `Journey ${journeyCode} deleted`
+                        `Journey ${journeyCode} available for reconnect`
                     );
 
                 }

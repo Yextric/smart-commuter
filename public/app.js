@@ -2292,7 +2292,7 @@ async function searchOneMapLocation(
     try {
 
         const url =
-            `http://localhost:3000/api/search` +
+            "/api/search" +
             `?search=${encodeURIComponent(
                 searchValue
             )}`;
@@ -2377,7 +2377,7 @@ async function searchOneMapLocationSuggestions(
     try {
 
         const url =
-            `http://localhost:3000/api/search` +
+            "/api/search" +
             `?search=${encodeURIComponent(
                 searchValue
             )}`;
@@ -2529,7 +2529,7 @@ async function getPublicTransportRoute(
     try {
 
         const url =
-            `http://localhost:3000/api/route` +
+            "/api/route" +
             `?startLat=${encodeURIComponent(
                 startLat
             )}` +
@@ -3470,7 +3470,6 @@ function getBestTransportRoute(routes) {
 // LIVE JOURNEY MAP
 // =====================================================
 
-// Leaflet map
 let liveMap = null;
 
 // Track whether the map has already been created
@@ -3483,6 +3482,10 @@ let myLocationAccuracy = null;
 // Friend location
 let friendLocationMarker = null;
 
+// Most browsers provide heading only while the device is moving.
+let myHeading = null;
+let friendHeading = null;
+
 // GPS watch
 let locationWatchId = null;
 
@@ -3490,6 +3493,51 @@ let locationWatchId = null;
 // =====================================================
 // INITIALISE LIVE JOURNEY MAP
 // =====================================================
+
+let liveMapLoadPromise = null;
+
+async function prepareLiveGoogleMap() {
+    if (window.google && window.google.maps) {
+        initialiseLiveLocationMap();
+        return true;
+    }
+
+    if (!liveMapLoadPromise) {
+        liveMapLoadPromise = fetch("/api/config/maps")
+            .then(response => response.json())
+            .then(config => {
+                if (!config.googleMapsApiKey) {
+                    throw new Error(
+                        "Google Maps API key is not configured."
+                    );
+                }
+
+                return new Promise((resolve, reject) => {
+                    const script = document.createElement("script");
+                    script.src =
+                        "https://maps.googleapis.com/maps/api/js" +
+                        `?key=${encodeURIComponent(config.googleMapsApiKey)}`;
+                    script.async = true;
+                    script.defer = true;
+                    script.onload = resolve;
+                    script.onerror = () => reject(
+                        new Error("Unable to load Google Maps.")
+                    );
+                    document.head.appendChild(script);
+                });
+            });
+    }
+
+    try {
+        await liveMapLoadPromise;
+        initialiseLiveLocationMap();
+        return true;
+    } catch (error) {
+        console.error("Live Google Maps error:", error);
+        updateLocationStatus(error.message);
+        return false;
+    }
+}
 
 function initialiseLiveLocationMap() {
 
@@ -3507,11 +3555,11 @@ function initialiseLiveLocationMap() {
     }
 
 
-    // Make sure Leaflet is loaded
-    if (typeof L === "undefined") {
+    // The Google Maps script is loaded asynchronously below.
+    if (!window.google || !window.google.maps) {
 
         console.error(
-            "Cannot initialise map: Leaflet is not loaded."
+            "Cannot initialise map: Google Maps is not loaded."
         );
 
         return;
@@ -3521,38 +3569,30 @@ function initialiseLiveLocationMap() {
     // Prevent creating the map more than once
     if (liveMapInitialised && liveMap) {
 
-        liveMap.invalidateSize(true);
+        google.maps.event.trigger(
+            liveMap,
+            "resize"
+        );
 
         return;
     }
 
 
     // -----------------------------------------
-    // CREATE LEAFLET MAP
-    // -----------------------------------------
-
     liveMap =
-        L.map("liveMap", {
-            zoomControl: true
-        }).setView(
-            [1.3521, 103.8198],
-            12
+        new google.maps.Map(
+            mapElement,
+            {
+                center: {
+                    lat: 1.3521,
+                    lng: 103.8198
+                },
+                zoom: 12,
+                mapTypeControl: false,
+                streetViewControl: false,
+                fullscreenControl: true
+            }
         );
-
-
-    // -----------------------------------------
-    // OPENSTREETMAP TILES
-    // -----------------------------------------
-
-    L.tileLayer(
-        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-        {
-            attribution:
-                '&copy; OpenStreetMap contributors',
-
-            maxZoom: 19
-        }
-    ).addTo(liveMap);
 
 
     // Mark map as initialized
@@ -3572,7 +3612,10 @@ function initialiseLiveLocationMap() {
 
         if (liveMap) {
 
-            liveMap.invalidateSize(true);
+            google.maps.event.trigger(
+                liveMap,
+                "resize"
+            );
 
         }
 
@@ -3593,7 +3636,10 @@ function refreshLiveMapSize() {
 
     setTimeout(() => {
 
-        liveMap.invalidateSize(true);
+        google.maps.event.trigger(
+            liveMap,
+            "resize"
+        );
 
     }, 100);
 
@@ -3630,9 +3676,7 @@ function startLocationSharing() {
 
     // Make sure map exists
     if (!liveMapInitialised) {
-
-        initialiseLiveLocationMap();
-
+        prepareLiveGoogleMap();
     }
 
 
@@ -3713,29 +3757,29 @@ function startLocationSharing() {
 // LIVE LOCATION MARKER ICONS
 // =====================================================
 
-const myLocationIcon = L.divIcon({
-    className: "live-location-marker",
-    html: `
-        <div class="my-location-dot"></div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-});
+function getLocationIcon(color, heading) {
+    const icon = {
+        path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        fillColor: color,
+        fillOpacity: 1,
+        strokeColor: "#ffffff",
+        strokeWeight: 2,
+        scale: 7,
+        anchor: new google.maps.Point(0, 0)
+    };
 
-const friendLocationIcon = L.divIcon({
-    className: "live-location-marker",
-    html: `
-        <div class="friend-location-dot"></div>
-    `,
-    iconSize: [20, 20],
-    iconAnchor: [10, 10]
-});
+    if (Number.isFinite(heading)) {
+        icon.rotation = heading;
+    }
+
+    return icon;
+}
 
 // =====================================================
 // HANDLE LOCATION UPDATE
 // =====================================================
 
-function handleLocationUpdate(
+async function handleLocationUpdate(
     position
 ) {
 
@@ -3747,6 +3791,13 @@ function handleLocationUpdate(
 
     const accuracy =
         position.coords.accuracy;
+
+    const heading =
+        Number.isFinite(position.coords.heading)
+            ? position.coords.heading
+            : null;
+
+    myHeading = heading;
 
     checkDestinationAlarm(
     latitude,
@@ -3764,9 +3815,7 @@ function handleLocationUpdate(
 
     // Make sure map exists
     if (!liveMap) {
-
-        initialiseLiveLocationMap();
-
+        await prepareLiveGoogleMap();
     }
 
 
@@ -3784,24 +3833,47 @@ function handleLocationUpdate(
     // CREATE USER MARKER
     // -----------------------------------------
 
+    const myPosition = {
+        lat: latitude,
+        lng: longitude
+    };
+
     if (!myLocationMarker) {
 
         myLocationMarker =
-    L.marker(
-        [latitude, longitude],
-        {
-            icon: myLocationIcon
-        }
-    )
-    .addTo(liveMap)
-    .bindPopup(
-        "<strong>You</strong>"
-    );
+            new google.maps.Marker({
+                position: myPosition,
+                map: liveMap,
+                title: "You",
+                icon: getLocationIcon(
+                    "#173b2a",
+                    myHeading
+                )
+            });
+
+        myLocationMarker.addListener(
+            "click",
+            () => {
+                new google.maps.InfoWindow({
+                    content: "<strong>You</strong>"
+                }).open({
+                    map: liveMap,
+                    anchor: myLocationMarker
+                });
+            }
+        );
 
     } else {
 
-        myLocationMarker.setLatLng(
-            [latitude, longitude]
+        myLocationMarker.setPosition(
+            myPosition
+        );
+
+        myLocationMarker.setIcon(
+            getLocationIcon(
+                "#173b2a",
+                myHeading
+            )
         );
 
     }
@@ -3814,19 +3886,22 @@ function handleLocationUpdate(
     if (!myLocationAccuracy) {
 
         myLocationAccuracy =
-            L.circle(
-                [latitude, longitude],
-                {
-                    radius: accuracy
-                }
-            ).addTo(liveMap);
+            new google.maps.Circle({
+                map: liveMap,
+                center: myPosition,
+                radius: accuracy,
+                fillColor: "#173b2a",
+                fillOpacity: 0.12,
+                strokeColor: "#173b2a",
+                strokeOpacity: 0.35,
+                strokeWeight: 1
+            });
 
     } else {
 
-        myLocationAccuracy.setLatLng(
-            [latitude, longitude]
+        myLocationAccuracy.setCenter(
+            myPosition
         );
-
         myLocationAccuracy.setRadius(
             accuracy
         );
@@ -3842,8 +3917,10 @@ function handleLocationUpdate(
         !myLocationMarker._hasBeenCentered
     ) {
 
-        liveMap.setView(
-            [latitude, longitude],
+        liveMap.setCenter(
+            myPosition
+        );
+        liveMap.setZoom(
             16
         );
 
@@ -3862,7 +3939,8 @@ function handleLocationUpdate(
         {
             code: journeyCode,
             latitude: latitude,
-            longitude: longitude
+            longitude: longitude,
+            heading: heading
         }
     );
 
@@ -3872,7 +3950,9 @@ function handleLocationUpdate(
     // -----------------------------------------
 
     updateLocationStatus(
-        `Location shared · Accuracy ±${Math.round(accuracy)}m`
+        Number.isFinite(heading)
+            ? `Location shared · Facing ${Math.round(heading)}° · Accuracy ±${Math.round(accuracy)}m`
+            : `Location shared · Facing direction unavailable · Accuracy ±${Math.round(accuracy)}m`
     );
 
 
@@ -3881,7 +3961,10 @@ function handleLocationUpdate(
 
         if (liveMap) {
 
-            liveMap.invalidateSize(true);
+            google.maps.event.trigger(
+                liveMap,
+                "resize"
+            );
 
         }
 
@@ -3949,7 +4032,7 @@ const socket =
 
 socket.on(
     "friend-location",
-    (data) => {
+    async (data) => {
 
         console.log(
             "Friend location received:",
@@ -3971,12 +4054,19 @@ socket.on(
             return;
         }
 
+        friendHeading =
+            Number.isFinite(data.heading)
+                ? data.heading
+                : null;
+
+        if (!liveMapInitialised) {
+            await prepareLiveGoogleMap();
+        }
+
 
         // Make sure the map exists
         if (!liveMapInitialised) {
-
-            initialiseLiveLocationMap();
-
+            prepareLiveGoogleMap();
         }
 
 
@@ -4003,16 +4093,30 @@ socket.on(
         if (!friendLocationMarker) {
 
             friendLocationMarker =
-    L.marker(
-        friendLatLng,
-        {
-            icon: friendLocationIcon
-        }
-    )
-    .addTo(liveMap)
-    .bindPopup(
-        "<strong>Friend</strong>"
-    );
+                new google.maps.Marker({
+                    position: {
+                        lat: data.latitude,
+                        lng: data.longitude
+                    },
+                    map: liveMap,
+                    title: "Friend",
+                    icon: getLocationIcon(
+                        "#9b3d50",
+                        friendHeading
+                    )
+                });
+
+            friendLocationMarker.addListener(
+                "click",
+                () => {
+                    new google.maps.InfoWindow({
+                        content: "<strong>Friend</strong>"
+                    }).open({
+                        map: liveMap,
+                        anchor: friendLocationMarker
+                    });
+                }
+            );
 
             console.log(
                 "Friend marker created."
@@ -4021,8 +4125,18 @@ socket.on(
         } else {
 
             // Move existing marker
-            friendLocationMarker.setLatLng(
-                friendLatLng
+            friendLocationMarker.setPosition(
+                {
+                    lat: data.latitude,
+                    lng: data.longitude
+                }
+            );
+
+            friendLocationMarker.setIcon(
+                getLocationIcon(
+                    "#9b3d50",
+                    friendHeading
+                )
             );
 
         }
@@ -4031,9 +4145,12 @@ socket.on(
         // Refresh map
         setTimeout(() => {
 
-            if (liveMap) {
+            if (!liveMap) {
 
-                liveMap.invalidateSize(true);
+                google.maps.event.trigger(
+                    liveMap,
+                    "resize"
+                );
 
             }
 
@@ -4044,6 +4161,9 @@ socket.on(
 
 // Current connected journey code
 let journeyCode = null;
+
+const SAVED_JOURNEY_CODE_KEY =
+    "commuteTogetherJourneyCode";
 
 
 // Whether this device has successfully
@@ -4089,6 +4209,81 @@ const journeyConnectionText =
     document.getElementById(
         "journeyConnectionText"
     );
+
+const leaveJourneyBtn =
+    document.getElementById(
+        "leaveJourneyBtn"
+    );
+
+function saveJourneyCode(code) {
+    if (code) {
+        localStorage.setItem(
+            SAVED_JOURNEY_CODE_KEY,
+            code
+        );
+    }
+}
+
+function clearSavedJourneyCode() {
+    localStorage.removeItem(
+        SAVED_JOURNEY_CODE_KEY
+    );
+}
+
+function showConnectedJourney(message) {
+    if (journeyCodeText) {
+        journeyCodeText.textContent = journeyCode;
+    }
+
+    if (journeyCodeDisplay) {
+        journeyCodeDisplay.classList.remove("hidden");
+    }
+
+    if (journeyCodeInput) {
+        journeyCodeInput.value = journeyCode;
+    }
+
+    updateJourneyConnectionStatus(
+        true,
+        message
+    );
+
+    showLiveJourneyMap();
+}
+
+function restoreSavedJourney() {
+    const savedCode =
+        localStorage.getItem(
+            SAVED_JOURNEY_CODE_KEY
+        );
+
+    if (!savedCode || savedCode.length !== 6) {
+        return;
+    }
+
+    journeyCode = savedCode;
+
+    socket.emit(
+        "join-journey",
+        savedCode,
+        response => {
+            if (!response || !response.success) {
+                journeyCode = null;
+                clearSavedJourneyCode();
+                updateJourneyConnectionStatus(
+                    false,
+                    "Your previous journey has expired"
+                );
+                return;
+            }
+
+            journeyCode = response.code;
+            showConnectedJourney(
+                "Journey restored after refresh"
+            );
+        }
+    );
+}
 
 
 // =====================================================
@@ -4151,23 +4346,26 @@ function showLiveJourneyMap() {
 
 
         // -------------------------------------
-        // INITIALISE LEAFLET
+        // INITIALISE GOOGLE MAPS
         // -------------------------------------
 
         if (!liveMapInitialised) {
 
-            initialiseLiveLocationMap();
+            prepareLiveGoogleMap();
 
         }
 
 
         // -------------------------------------
-        // FORCE LEAFLET TO RECALCULATE SIZE
+        // REFRESH GOOGLE MAPS SIZE
         // -------------------------------------
 
         if (liveMap) {
 
-            liveMap.invalidateSize(true);
+            google.maps.event.trigger(
+                liveMap,
+                "resize"
+            );
 
             console.log(
                 "Live map size refreshed."
@@ -4191,6 +4389,13 @@ function updateJourneyConnectionStatus(
 
     journeyConnected =
         connected;
+
+    if (leaveJourneyBtn) {
+        leaveJourneyBtn.classList.toggle(
+            "hidden",
+            !connected
+        );
+    }
 
 
     if (
@@ -4244,6 +4449,8 @@ socket.on(
             false,
             "Ready to create or join a journey"
         );
+
+        restoreSavedJourney();
 
     }
 );
@@ -4361,6 +4568,10 @@ if (createJourneyBtn) {
 
                     journeyCode =
                         response.code;
+
+                    saveJourneyCode(
+                        journeyCode
+                    );
 
                     journeyConnected =
                         true;
@@ -4566,6 +4777,10 @@ if (joinJourneyBtn) {
                     journeyCode =
                         response.code;
 
+                    saveJourneyCode(
+                        journeyCode
+                    );
+
                     journeyConnected =
                         true;
 
@@ -4690,6 +4905,80 @@ socket.on(
 
     }
 );
+
+// =====================================================
+// LEAVE JOURNEY
+// =====================================================
+
+function resetLiveJourneyMap() {
+    stopLocationSharing();
+
+    if (myLocationMarker) {
+        myLocationMarker.setMap(null);
+        myLocationMarker = null;
+    }
+
+    if (friendLocationMarker) {
+        friendLocationMarker.setMap(null);
+        friendLocationMarker = null;
+    }
+
+    if (myLocationAccuracy) {
+        myLocationAccuracy.setMap(null);
+        myLocationAccuracy = null;
+    }
+
+    myHeading = null;
+    friendHeading = null;
+    liveMapInitialised = false;
+
+    const liveJourneySection =
+        document.getElementById(
+            "liveJourneySection"
+        );
+
+    if (liveJourneySection) {
+        liveJourneySection.classList.add(
+            "hidden"
+        );
+    }
+
+    updateLocationStatus(
+        "Location sharing is off"
+    );
+}
+
+if (leaveJourneyBtn) {
+    leaveJourneyBtn.addEventListener(
+        "click",
+        () => {
+            if (journeyConnected && socket.connected) {
+                socket.emit(
+                    "leave-journey"
+                );
+            }
+
+            journeyCode = null;
+            clearSavedJourneyCode();
+            resetLiveJourneyMap();
+
+            if (journeyCodeInput) {
+                journeyCodeInput.value = "";
+            }
+
+            if (journeyCodeDisplay) {
+                journeyCodeDisplay.classList.add(
+                    "hidden"
+                );
+            }
+
+            updateJourneyConnectionStatus(
+                false,
+                "Ready to create or join a journey"
+            );
+        }
+    );
+}
 
 // =====================================================
 // SHARE MY LOCATION BUTTON
@@ -5104,20 +5393,10 @@ async function checkDestinationAlarm(
         // SEND DEVICE NOTIFICATION
         // -----------------------------------------
 
-        if (
-            "Notification" in window &&
-            Notification.permission === "granted"
-        ) {
-
-            new Notification(
-                "CommuteTogether",
-                {
-                    body:
-                        message
-                }
-            );
-
-        }
+        sendCommuteNotification(
+            "CommuteTogether",
+            message
+        );
 
 
         console.log(
@@ -5327,11 +5606,9 @@ if (setDestinationAlarmBtn) {
                 const message =
                     `Get ready to alight at ${destinationAlertStation}!`;
 
-                new Notification(
+                sendCommuteNotification(
                     "CommuteTogether",
-                    {
-                        body: message
-                    }
+                    message
                 );
 
                 console.log(
@@ -5788,6 +6065,50 @@ function escapeHtml(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+function sendCommuteNotification(
+    title,
+    body,
+    onClick
+) {
+    if (
+        !("Notification" in window) ||
+        Notification.permission !== "granted"
+    ) {
+        return null;
+    }
+
+    if ("vibrate" in navigator) {
+        navigator.vibrate([
+            300,
+            150,
+            300
+        ]);
+    }
+
+    const notification =
+        new Notification(
+            title,
+            {
+                body:
+                    body,
+                vibrate: [
+                    300,
+                    150,
+                    300
+                ],
+                tag:
+                    "commute-together-alert"
+            }
+        );
+
+    if (typeof onClick === "function") {
+        notification.onclick =
+            onClick;
+    }
+
+    return notification;
 }
 
 function showCommuterMessage(message) {
@@ -6496,24 +6817,18 @@ function scheduleRouteReminder(route) {
                         ? `${activeAlerts.length} LTA disruption${activeAlerts.length === 1 ? "" : "s"} now affect${activeAlerts.length === 1 ? "s" : ""} ${route.name || "your route"}.`
                         : `The LTA disruption affecting ${route.name || "your route"} has cleared.`;
 
-                    const notification =
-                        new Notification(
-                            route.name ||
-                                "Route disruption",
-                            {
-                                body:
-                                    message
-                            }
-                        );
-
-                    notification.onclick =
+                    sendCommuteNotification(
+                        route.name ||
+                            "Route disruption",
+                        message,
                         () => {
                             window.focus();
                             window.location.href =
                                 getRouteDetailUrl(
                                     route.id
                                 );
-                        };
+                        }
+                    );
             }
         };
 
@@ -7733,7 +8048,7 @@ async function searchOneMapSuggestions(
     try {
 
         const url =
-            `http://localhost:3000/api/search` +
+            "/api/search" +
             `?search=${encodeURIComponent(
                 searchValue
             )}`;
@@ -8421,7 +8736,63 @@ function placeMatchesCategory(place, category) {
         place.notes.toLowerCase().includes(cleanCategory);
 }
 
-function renderMeetupPlaces() {
+function renderMeetupFallbackPlaces(
+    userLocation,
+    friendLocation,
+    userMaxTime,
+    friendMaxTime,
+    category
+) {
+    const userZone =
+        getMeetupZone(userLocation);
+
+    const friendZone =
+        getMeetupZone(friendLocation);
+
+    return meetupPlaces
+        .map(place => ({
+            ...place,
+            userTravel:
+                place.travel[userZone] || place.travel.central,
+            friendTravel:
+                place.travel[friendZone] || place.travel.central
+        }))
+        .filter(place =>
+            place.userTravel <= userMaxTime &&
+            place.friendTravel <= friendMaxTime &&
+            placeMatchesCategory(place, category)
+        )
+        .sort((a, b) =>
+            (a.userTravel + a.friendTravel) -
+            (b.userTravel + b.friendTravel)
+        );
+}
+
+function renderMeetupPlaceCards(
+    matches,
+    category,
+    source
+) {
+    meetupPlacesStatus.textContent =
+        matches.length
+            ? `${matches.length} place${matches.length === 1 ? "" : "s"} found for ${category}${source === "gemini" ? " by Gemini" : ""}.`
+            : "No places matched those time limits. Try increasing the maximum travel time.";
+
+    meetupPlacesList.innerHTML =
+        matches.map(place => `
+            <article class="meetup-place-card">
+                <strong>${escapeHtml(place.name)}</strong>
+                <span>${escapeHtml(place.area)} - ${escapeHtml(place.notes)}</span>
+                <div class="meetup-place-meta">
+                    <span class="meetup-chip">You: ${escapeHtml(place.userTravel)} min</span>
+                    <span class="meetup-chip">Friend: ${escapeHtml(place.friendTravel)} min</span>
+                    <span class="meetup-chip">${escapeHtml(place.category || place.categories?.[0] || category)}</span>
+                </div>
+            </article>
+        `).join("");
+}
+
+async function renderMeetupPlaces() {
 
     if (!meetupPlacesList || !meetupPlacesStatus) {
         return;
@@ -8457,51 +8828,68 @@ function renderMeetupPlaces() {
         return;
     }
 
-    const userZone =
-        getMeetupZone(userLocation);
-
-    const friendZone =
-        getMeetupZone(friendLocation);
-
     const category =
         getMeetupCategory();
 
-    const matches =
-        meetupPlaces
-            .map(place => ({
-                ...place,
-                userTravel:
-                    place.travel[userZone] || place.travel.central,
-                friendTravel:
-                    place.travel[friendZone] || place.travel.central
-            }))
-            .filter(place =>
-                place.userTravel <= userMaxTime &&
-                place.friendTravel <= friendMaxTime &&
-                placeMatchesCategory(place, category)
-            )
-            .sort((a, b) =>
-                (a.userTravel + a.friendTravel) -
-                (b.userTravel + b.friendTravel)
+    meetupPlacesStatus.textContent =
+        "Searching for suitable places...";
+
+    meetupPlacesList.innerHTML = "";
+
+    try {
+        const response =
+            await fetch(
+                "/api/meetup/gemini-places",
+                {
+                    method:
+                        "POST",
+                    headers: {
+                        "Content-Type":
+                            "application/json"
+                    },
+                    body:
+                        JSON.stringify({
+                            userLocation,
+                            friendLocation,
+                            category,
+                            userMaxTime,
+                            friendMaxTime
+                        })
+                }
             );
 
-    meetupPlacesStatus.textContent =
-        matches.length
-            ? `${matches.length} place${matches.length === 1 ? "" : "s"} found for ${category}.`
-            : "No places matched those time limits. Try increasing the maximum travel time.";
+        if (!response.ok) {
+            throw new Error(
+                "Gemini meetup search failed"
+            );
+        }
 
-    meetupPlacesList.innerHTML =
-        matches.map(place => `
-            <article class="meetup-place-card">
-                <strong>${escapeHtml(place.name)}</strong>
-                <span>${escapeHtml(place.area)} - ${escapeHtml(place.notes)}</span>
-                <div class="meetup-place-meta">
-                    <span class="meetup-chip">You: ${escapeHtml(place.userTravel)} min</span>
-                    <span class="meetup-chip">Friend: ${escapeHtml(place.friendTravel)} min</span>
-                    <span class="meetup-chip">${escapeHtml(place.categories[0])}</span>
-                </div>
-            </article>
-        `).join("");
+        const data =
+            await response.json();
+
+        renderMeetupPlaceCards(
+            data.places || [],
+            category,
+            data.source
+        );
+    } catch (error) {
+        console.error(
+            "Meetup search error:",
+            error
+        );
+
+        renderMeetupPlaceCards(
+            renderMeetupFallbackPlaces(
+                userLocation,
+                friendLocation,
+                userMaxTime,
+                friendMaxTime,
+                category
+            ),
+            category,
+            "fallback"
+        );
+    }
 }
 
 if (meetupCategorySelect && meetupCustomCategoryField) {

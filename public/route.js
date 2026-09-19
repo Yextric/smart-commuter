@@ -791,11 +791,46 @@ function renderRouteAlternatives(
         return;
     }
 
-    container.innerHTML =
-        "";
+    container.innerHTML = "";
 
-    result.routes.forEach(
-        (route, index) => {
+    const uniqueRoutes = [];
+    const fingerprints = new Set();
+
+    result.routes.forEach((route, originalIndex) => {
+        const summary =
+            getRouteSummary(route);
+
+        const transitSignature =
+            route.legs
+                .flatMap(leg => leg.steps || [])
+                .filter(step =>
+                    step.travel_mode === google.maps.TravelMode.TRANSIT
+                )
+                .map(step => {
+                    const transit = step.transit;
+                    return transit && transit.line
+                        ? transit.line.short_name || transit.line.name || "Transit"
+                        : "Transit";
+                })
+                .join(">");
+
+        const fingerprint = [
+            summary.duration,
+            summary.details,
+            transitSignature
+        ].join("|");
+
+        if (!fingerprints.has(fingerprint)) {
+            fingerprints.add(fingerprint);
+            uniqueRoutes.push({
+                route,
+                originalIndex
+            });
+        }
+    });
+
+    uniqueRoutes.forEach(
+        ({ route, originalIndex }, displayIndex) => {
             const summary =
                 getRouteSummary(route);
 
@@ -810,21 +845,22 @@ function renderRouteAlternatives(
             button.className =
                 "route-alternative-option";
 
-            if (index === selectedIndex) {
+            if (originalIndex === selectedIndex) {
                 button.classList.add(
                     "selected"
                 );
             }
 
             button.innerHTML = `
-                <strong>Route ${index + 1}${index === selectedIndex ? " - selected" : ""}</strong>
+                <strong>Route ${displayIndex + 1}${originalIndex === selectedIndex ? " - selected" : ""}</strong>
                 <span>${summary.duration || "Duration unavailable"}</span>
+                <small class="route-option-description">${escapeHtml(route.summary || "Google transit alternative for this commute.")}</small>
                 <small>${summary.details}</small>
             `;
 
             button.addEventListener(
                 "click",
-                () => onSelect(index)
+                () => onSelect(originalIndex)
             );
 
             container.appendChild(
