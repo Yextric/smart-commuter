@@ -3331,6 +3331,16 @@ body.elderly-mode .incident-time {
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
+.live-location-arrow {
+    width: 20px;
+    height: 20px;
+    display: block;
+    border: 3px solid white;
+    border-radius: 50% 50% 50% 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+    transform-origin: center;
+}
+
 /* =====================================================
    LIVE LOCATION LEGEND
    ===================================================== */

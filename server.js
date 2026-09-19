@@ -1813,7 +1813,10 @@ io.on(
                             latitude,
 
                         longitude:
-                            longitude
+                            longitude,
+
+                        heading:
+                            heading
                     }
                 );
 

@@ -3494,49 +3494,17 @@ let locationWatchId = null;
 // INITIALISE LIVE JOURNEY MAP
 // =====================================================
 
-let liveMapLoadPromise = null;
+async function prepareLiveOsmMap() {
+    if (!window.L) {
+        updateLocationStatus(
+            "OpenStreetMap is not available yet. Please refresh and try again."
+        );
 
-async function prepareLiveGoogleMap() {
-    if (window.google && window.google.maps) {
-        initialiseLiveLocationMap();
-        return true;
-    }
-
-    if (!liveMapLoadPromise) {
-        liveMapLoadPromise = fetch("/api/config/maps")
-            .then(response => response.json())
-            .then(config => {
-                if (!config.googleMapsApiKey) {
-                    throw new Error(
-                        "Google Maps API key is not configured."
-                    );
-                }
-
-                return new Promise((resolve, reject) => {
-                    const script = document.createElement("script");
-                    script.src =
-                        "https://maps.googleapis.com/maps/api/js" +
-                        `?key=${encodeURIComponent(config.googleMapsApiKey)}`;
-                    script.async = true;
-                    script.defer = true;
-                    script.onload = resolve;
-                    script.onerror = () => reject(
-                        new Error("Unable to load Google Maps.")
-                    );
-                    document.head.appendChild(script);
-                });
-            });
-    }
-
-    try {
-        await liveMapLoadPromise;
-        initialiseLiveLocationMap();
-        return true;
-    } catch (error) {
-        console.error("Live Google Maps error:", error);
-        updateLocationStatus(error.message);
         return false;
     }
+
+    initialiseLiveLocationMap();
+    return true;
 }
 
 function initialiseLiveLocationMap() {
@@ -3555,11 +3523,10 @@ function initialiseLiveLocationMap() {
     }
 
 
-    // The Google Maps script is loaded asynchronously below.
-    if (!window.google || !window.google.maps) {
+    if (!window.L) {
 
         console.error(
-            "Cannot initialise map: Google Maps is not loaded."
+            "Cannot initialise map: Leaflet is not loaded."
         );
 
         return;
@@ -3569,10 +3536,7 @@ function initialiseLiveLocationMap() {
     // Prevent creating the map more than once
     if (liveMapInitialised && liveMap) {
 
-        google.maps.event.trigger(
-            liveMap,
-            "resize"
-        );
+        liveMap.invalidateSize();
 
         return;
     }
@@ -3580,27 +3544,28 @@ function initialiseLiveLocationMap() {
 
     // -----------------------------------------
     liveMap =
-        new google.maps.Map(
-            mapElement,
-            {
-                center: {
-                    lat: 1.3521,
-                    lng: 103.8198
-                },
-                zoom: 12,
-                mapTypeControl: false,
-                streetViewControl: false,
-                fullscreenControl: true
-            }
+        L.map(
+            mapElement
+        ).setView(
+            [1.3521, 103.8198],
+            12
         );
 
+    L.tileLayer(
+        "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+        {
+            maxZoom: 19,
+            attribution:
+                '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }
+    ).addTo(liveMap);
 
     // Mark map as initialized
     liveMapInitialised = true;
 
 
     console.log(
-        "Live Journey map initialized."
+        "Live Journey OpenStreetMap initialized."
     );
 
 
@@ -3612,10 +3577,7 @@ function initialiseLiveLocationMap() {
 
         if (liveMap) {
 
-            google.maps.event.trigger(
-                liveMap,
-                "resize"
-            );
+            liveMap.invalidateSize();
 
         }
 
@@ -3636,10 +3598,7 @@ function refreshLiveMapSize() {
 
     setTimeout(() => {
 
-        google.maps.event.trigger(
-            liveMap,
-            "resize"
-        );
+        liveMap.invalidateSize();
 
     }, 100);
 
@@ -3676,7 +3635,7 @@ function startLocationSharing() {
 
     // Make sure map exists
     if (!liveMapInitialised) {
-        prepareLiveGoogleMap();
+        prepareLiveOsmMap();
     }
 
 
@@ -3758,21 +3717,21 @@ function startLocationSharing() {
 // =====================================================
 
 function getLocationIcon(color, heading) {
-    const icon = {
-        path: google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
-        fillColor: color,
-        fillOpacity: 1,
-        strokeColor: "#ffffff",
-        strokeWeight: 2,
-        scale: 7,
-        anchor: new google.maps.Point(0, 0)
-    };
+    const rotation =
+        Number.isFinite(heading)
+            ? `transform: rotate(${heading}deg);`
+            : "";
 
-    if (Number.isFinite(heading)) {
-        icon.rotation = heading;
-    }
-
-    return icon;
+    return L.divIcon({
+        className:
+            "live-location-marker",
+        html:
+            `<span class="live-location-arrow" style="background:${color}; ${rotation}"></span>`,
+        iconSize:
+            [22, 22],
+        iconAnchor:
+            [11, 11]
+    });
 }
 
 // =====================================================
@@ -3815,7 +3774,7 @@ async function handleLocationUpdate(
 
     // Make sure map exists
     if (!liveMap) {
-        await prepareLiveGoogleMap();
+        await prepareLiveOsmMap();
     }
 
 
@@ -3841,32 +3800,25 @@ async function handleLocationUpdate(
     if (!myLocationMarker) {
 
         myLocationMarker =
-            new google.maps.Marker({
-                position: myPosition,
-                map: liveMap,
-                title: "You",
-                icon: getLocationIcon(
-                    "#173b2a",
-                    myHeading
-                )
-            });
-
-        myLocationMarker.addListener(
-            "click",
-            () => {
-                new google.maps.InfoWindow({
-                    content: "<strong>You</strong>"
-                }).open({
-                    map: liveMap,
-                    anchor: myLocationMarker
-                });
-            }
-        );
+            L.marker(
+                [latitude, longitude],
+                {
+                    title:
+                        "You",
+                    icon:
+                        getLocationIcon(
+                            "#173b2a",
+                            myHeading
+                        )
+                }
+            )
+                .addTo(liveMap)
+                .bindPopup("<strong>You</strong>");
 
     } else {
 
-        myLocationMarker.setPosition(
-            myPosition
+        myLocationMarker.setLatLng(
+            [latitude, longitude]
         );
 
         myLocationMarker.setIcon(
@@ -3886,21 +3838,22 @@ async function handleLocationUpdate(
     if (!myLocationAccuracy) {
 
         myLocationAccuracy =
-            new google.maps.Circle({
-                map: liveMap,
-                center: myPosition,
-                radius: accuracy,
-                fillColor: "#173b2a",
-                fillOpacity: 0.12,
-                strokeColor: "#173b2a",
-                strokeOpacity: 0.35,
-                strokeWeight: 1
-            });
+            L.circle(
+                [latitude, longitude],
+                {
+                    radius: accuracy,
+                    fillColor: "#173b2a",
+                    fillOpacity: 0.12,
+                    color: "#173b2a",
+                    opacity: 0.35,
+                    weight: 1
+                }
+            ).addTo(liveMap);
 
     } else {
 
-        myLocationAccuracy.setCenter(
-            myPosition
+        myLocationAccuracy.setLatLng(
+            [latitude, longitude]
         );
         myLocationAccuracy.setRadius(
             accuracy
@@ -3917,10 +3870,8 @@ async function handleLocationUpdate(
         !myLocationMarker._hasBeenCentered
     ) {
 
-        liveMap.setCenter(
-            myPosition
-        );
-        liveMap.setZoom(
+        liveMap.setView(
+            [latitude, longitude],
             16
         );
 
@@ -3961,10 +3912,7 @@ async function handleLocationUpdate(
 
         if (liveMap) {
 
-            google.maps.event.trigger(
-                liveMap,
-                "resize"
-            );
+            liveMap.invalidateSize();
 
         }
 
@@ -4060,13 +4008,13 @@ socket.on(
                 : null;
 
         if (!liveMapInitialised) {
-            await prepareLiveGoogleMap();
+            await prepareLiveOsmMap();
         }
 
 
         // Make sure the map exists
         if (!liveMapInitialised) {
-            prepareLiveGoogleMap();
+            prepareLiveOsmMap();
         }
 
 
@@ -4093,30 +4041,23 @@ socket.on(
         if (!friendLocationMarker) {
 
             friendLocationMarker =
-                new google.maps.Marker({
-                    position: {
-                        lat: data.latitude,
-                        lng: data.longitude
-                    },
-                    map: liveMap,
-                    title: "Friend",
-                    icon: getLocationIcon(
-                        "#9b3d50",
-                        friendHeading
-                    )
-                });
-
-            friendLocationMarker.addListener(
-                "click",
-                () => {
-                    new google.maps.InfoWindow({
-                        content: "<strong>Friend</strong>"
-                    }).open({
-                        map: liveMap,
-                        anchor: friendLocationMarker
-                    });
-                }
-            );
+                L.marker(
+                    [
+                        data.latitude,
+                        data.longitude
+                    ],
+                    {
+                        title:
+                            "Friend",
+                        icon:
+                            getLocationIcon(
+                                "#9b3d50",
+                                friendHeading
+                            )
+                    }
+                )
+                    .addTo(liveMap)
+                    .bindPopup("<strong>Friend</strong>");
 
             console.log(
                 "Friend marker created."
@@ -4125,11 +4066,11 @@ socket.on(
         } else {
 
             // Move existing marker
-            friendLocationMarker.setPosition(
-                {
-                    lat: data.latitude,
-                    lng: data.longitude
-                }
+            friendLocationMarker.setLatLng(
+                [
+                    data.latitude,
+                    data.longitude
+                ]
             );
 
             friendLocationMarker.setIcon(
@@ -4145,12 +4086,9 @@ socket.on(
         // Refresh map
         setTimeout(() => {
 
-            if (!liveMap) {
+            if (liveMap) {
 
-                google.maps.event.trigger(
-                    liveMap,
-                    "resize"
-                );
+                liveMap.invalidateSize();
 
             }
 
@@ -4346,26 +4284,23 @@ function showLiveJourneyMap() {
 
 
         // -------------------------------------
-        // INITIALISE GOOGLE MAPS
+        // INITIALISE OPENSTREETMAP LIVE MAP
         // -------------------------------------
 
         if (!liveMapInitialised) {
 
-            prepareLiveGoogleMap();
+            prepareLiveOsmMap();
 
         }
 
 
         // -------------------------------------
-        // REFRESH GOOGLE MAPS SIZE
+        // REFRESH OPENSTREETMAP SIZE
         // -------------------------------------
 
         if (liveMap) {
 
-            google.maps.event.trigger(
-                liveMap,
-                "resize"
-            );
+            liveMap.invalidateSize();
 
             console.log(
                 "Live map size refreshed."
@@ -4914,18 +4849,23 @@ function resetLiveJourneyMap() {
     stopLocationSharing();
 
     if (myLocationMarker) {
-        myLocationMarker.setMap(null);
+        myLocationMarker.remove();
         myLocationMarker = null;
     }
 
     if (friendLocationMarker) {
-        friendLocationMarker.setMap(null);
+        friendLocationMarker.remove();
         friendLocationMarker = null;
     }
 
     if (myLocationAccuracy) {
-        myLocationAccuracy.setMap(null);
+        myLocationAccuracy.remove();
         myLocationAccuracy = null;
+    }
+
+    if (liveMap) {
+        liveMap.remove();
+        liveMap = null;
     }
 
     myHeading = null;
