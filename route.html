@@ -67,6 +67,25 @@
             </div>
         </section>
 
+        <section class="route-incident-panel">
+            <div>
+                <span class="section-label">
+                    INCIDENT SUMMARY
+                </span>
+                <h3 id="routeIncidentHeading">
+                    Checking LTA alerts...
+                </h3>
+                <p id="routeIncidentSummary">
+                    Gemini will summarise any active train disruptions for this saved route.
+                </p>
+            </div>
+
+            <div
+                id="routeIncidentSuggestions"
+                class="route-incident-suggestions"
+            ></div>
+        </section>
+
         <section class="route-customizer">
             <div>
                 <span class="section-label">
@@ -100,6 +119,28 @@
                 >
                     Add point
                 </button>
+            </div>
+
+            <div class="map-route-options">
+                <div class="route-option-field">
+                    <label for="disruptionPreference">
+                        Options
+                    </label>
+                    <select id="disruptionPreference">
+                        <option value="fastest">
+                            Fastest available route
+                        </option>
+                        <option value="least-walking">
+                            Least walking
+                        </option>
+                        <option value="least-transfer">
+                            Fewer transfers
+                        </option>
+                        <option value="bus-friendly">
+                            Bus backup routes
+                        </option>
+                    </select>
+                </div>
             </div>
 
             <div

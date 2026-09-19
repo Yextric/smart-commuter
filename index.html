@@ -26,7 +26,7 @@
 </head>
 
 
-<body>
+<body class="auth-gated" data-app-tab="commute">
 
     <section
         id="loginScreen"
@@ -504,24 +504,6 @@
                             </option>
                             <option value="custom">
                                 Custom time
-                            </option>
-                        </select>
-                    </div>
-
-                    <div class="commute-field">
-                        <label for="routePriority">
-                            IF DISRUPTED
-                        </label>
-
-                        <select id="routePriority">
-                            <option value="fastest" selected>
-                                Suggest fastest alternative
-                            </option>
-                            <option value="least-transfer">
-                                Suggest fewer transfers
-                            </option>
-                            <option value="bus-friendly">
-                                Prefer bus backup routes
                             </option>
                         </select>
                     </div>
@@ -1238,55 +1220,6 @@
 
             </div>
 
-
-            <div class="alternative-routes">
-
-                <div class="preference-heading">
-
-                    <span class="section-label">
-                        GOOGLE MAPS ALTERNATIVES
-                    </span>
-
-                    <h3>
-                        Suggested backup routes
-                    </h3>
-
-                </div>
-
-
-                <div class="alternative-grid">
-
-                    <article class="alternative-card">
-                        <strong>
-                            Circle Line + Downtown Line
-                        </strong>
-                        <span>
-                            Similar travel time, avoids affected rail segment.
-                        </span>
-                    </article>
-
-                    <article class="alternative-card">
-                        <strong>
-                            Express bus connection
-                        </strong>
-                        <span>
-                            Fewer train transfers, better for elderly-friendly mode.
-                        </span>
-                    </article>
-
-                    <article class="alternative-card">
-                        <strong>
-                            Leave 15 minutes later
-                        </strong>
-                        <span>
-                            Use when the disruption is expected to clear soon.
-                        </span>
-                    </article>
-
-                </div>
-
-            </div>
-
         </section>
 
 
@@ -1551,6 +1484,29 @@
 
             </div>
 
+            <div class="map-incident-guidance">
+
+                <div>
+                    <span class="section-label">
+                        INCIDENT GUIDANCE
+                    </span>
+
+                    <h3 id="mapIncidentGuidanceHeading">
+                        Preparing incident guidance...
+                    </h3>
+
+                    <p id="mapIncidentGuidanceSummary">
+                        The latest LTA incident summary and commuter suggestions will appear here.
+                    </p>
+                </div>
+
+                <div
+                    id="mapIncidentGuidanceSuggestions"
+                    class="incident-guidance-suggestions"
+                ></div>
+
+            </div>
+
 
 
 
@@ -1784,6 +1740,38 @@
 
 
 </main>
+
+<nav
+    class="bottom-app-nav"
+    aria-label="Main app sections"
+>
+    <button
+        class="bottom-app-nav-btn active"
+        type="button"
+        data-app-tab-target="commute"
+    >
+        <span class="bottom-app-nav-icon">01</span>
+        <span>Regular</span>
+    </button>
+
+    <button
+        class="bottom-app-nav-btn"
+        type="button"
+        data-app-tab-target="meetup"
+    >
+        <span class="bottom-app-nav-icon">02</span>
+        <span>Meetup</span>
+    </button>
+
+    <button
+        class="bottom-app-nav-btn"
+        type="button"
+        data-app-tab-target="reminder"
+    >
+        <span class="bottom-app-nav-icon">03</span>
+        <span>Wake Up</span>
+    </button>
+</nav>
 
 
 <!-- FOOTER -->

@@ -125,6 +125,151 @@ function setMapStatus(message) {
     );
 }
 
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function setIncidentText(heading, summary) {
+    setText(
+        "routeIncidentHeading",
+        heading
+    );
+
+    setText(
+        "routeIncidentSummary",
+        summary
+    );
+}
+
+function renderIncidentSuggestions(suggestions) {
+    const container =
+        document.getElementById(
+            "routeIncidentSuggestions"
+        );
+
+    if (!container) {
+        return;
+    }
+
+    if (
+        !Array.isArray(suggestions) ||
+        suggestions.length === 0
+    ) {
+        container.innerHTML =
+            "";
+        return;
+    }
+
+    container.innerHTML =
+        suggestions
+            .map(suggestion => `
+                <article class="route-incident-suggestion">
+                    <strong>${escapeHtml(suggestion.title || "Suggestion")}</strong>
+                    <span>${escapeHtml(suggestion.detail || "")}</span>
+                </article>
+            `)
+            .join("");
+}
+
+async function loadRouteIncidentGuidance(route) {
+    try {
+        const useMockFault =
+            new URLSearchParams(
+                window.location.search
+            ).get("mockFault") === "1";
+
+        const alertsResponse =
+            await fetch(
+                useMockFault
+                    ? "/api/lta/train-alerts?mock=fault"
+                    : "/api/lta/train-alerts"
+            );
+
+        if (!alertsResponse.ok) {
+            throw new Error(
+                "Unable to load LTA alerts"
+            );
+        }
+
+        const alertData =
+            await alertsResponse.json();
+
+        const alerts =
+            Array.isArray(alertData.alerts)
+                ? alertData.alerts
+                : [];
+
+        if (alerts.length === 0) {
+            setIncidentText(
+                "No active train alerts",
+                "LTA is not reporting any active GTFS realtime train service alerts right now."
+            );
+
+            renderIncidentSuggestions([]);
+            return;
+        }
+
+        const guidanceResponse =
+            await fetch(
+                "/api/incidents/gemini-summary",
+                {
+                    method:
+                        "POST",
+                    headers:
+                        {
+                            "Content-Type":
+                                "application/json"
+                        },
+                    body:
+                        JSON.stringify({
+                            route:
+                                route,
+                            alerts:
+                                alerts
+                        })
+                }
+            );
+
+        if (!guidanceResponse.ok) {
+            throw new Error(
+                "Unable to load Gemini incident guidance"
+            );
+        }
+
+        const guidance =
+            await guidanceResponse.json();
+
+        setIncidentText(
+            guidance.impact === "affected"
+                ? "Your route may be affected"
+                : "Active train alert found",
+            guidance.summary ||
+                "There is an active LTA train service alert. Check the suggestions before leaving."
+        );
+
+        renderIncidentSuggestions(
+            guidance.suggestions
+        );
+    } catch (error) {
+        console.error(
+            "Route incident guidance error:",
+            error
+        );
+
+        setIncidentText(
+            "Unable to check route incidents",
+            "The app could not load LTA or Gemini incident guidance right now."
+        );
+
+        renderIncidentSuggestions([]);
+    }
+}
+
 function loadGoogleMapsScript(apiKey) {
     return new Promise(
         (resolve, reject) => {
@@ -215,6 +360,49 @@ function getRouteDepartureTime(route) {
     return departureTime;
 }
 
+function getRoutePreference(route) {
+    return (
+        route.disruptionPreference ||
+        route.priority ||
+        "fastest"
+    );
+}
+
+function getTransitPreferenceOptions(route) {
+    const preference =
+        getRoutePreference(route);
+
+    const options = {};
+
+    if (
+        preference === "least-walking" &&
+        google.maps.TransitRoutePreference
+    ) {
+        options.routingPreference =
+            google.maps.TransitRoutePreference.LESS_WALKING;
+    }
+
+    if (
+        preference === "least-transfer" &&
+        google.maps.TransitRoutePreference
+    ) {
+        options.routingPreference =
+            google.maps.TransitRoutePreference.FEWER_TRANSFERS;
+    }
+
+    if (
+        preference === "bus-friendly" &&
+        google.maps.TransitMode
+    ) {
+        options.modes =
+            [
+                google.maps.TransitMode.BUS
+            ];
+    }
+
+    return options;
+}
+
 function applyTransitDepartureTime(
     request,
     route
@@ -225,7 +413,20 @@ function applyTransitDepartureTime(
             route
         );
 
-    if (!departureTime) {
+    const transitOptions = {
+        ...getTransitPreferenceOptions(
+            route
+        )
+    };
+
+    if (departureTime) {
+        transitOptions.departureTime =
+            departureTime;
+    }
+
+    if (
+        Object.keys(transitOptions).length === 0
+    ) {
         return request;
     }
 
@@ -233,10 +434,7 @@ function applyTransitDepartureTime(
         ...request,
 
         transitOptions:
-            {
-                departureTime:
-                    departureTime
-            }
+            transitOptions
     };
 }
 
@@ -707,6 +905,44 @@ function renderViaPoints(route) {
     );
 }
 
+function setupRoutePreferences(route) {
+    const preferenceSelect =
+        document.getElementById(
+            "disruptionPreference"
+        );
+
+    if (preferenceSelect) {
+        preferenceSelect.value =
+            getRoutePreference(route);
+
+        preferenceSelect.onchange =
+            () => {
+                const nextPreference =
+                    preferenceSelect.value;
+
+                route.disruptionPreference =
+                    nextPreference;
+
+                route.priority =
+                    nextPreference;
+
+                updateSavedRoute(
+                    route.id,
+                    {
+                        disruptionPreference:
+                            nextPreference,
+                        priority:
+                            nextPreference
+                    }
+                );
+
+                renderGoogleRoute(
+                    route
+                );
+            };
+    }
+}
+
 function setupViaPointInput(route) {
 
     const input =
@@ -1124,6 +1360,10 @@ async function renderGoogleRoute(route) {
         route
     );
 
+    setupRoutePreferences(
+        route
+    );
+
     renderViaPoints(
         route
     );
@@ -1341,6 +1581,10 @@ async function initRoutePage() {
         link.href =
             getGoogleDirectionsUrl(route);
     }
+
+    loadRouteIncidentGuidance(
+        route
+    );
 
     try {
         await renderGoogleRoute(

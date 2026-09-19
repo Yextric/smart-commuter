@@ -664,6 +664,211 @@ app.get("/api/lta/train-alerts", async (req, res) => {
     }
 });
 
+function extractGeminiJson(text) {
+    if (!text) {
+        return null;
+    }
+
+    const cleaned =
+        text
+            .trim()
+            .replace(/^```json/i, "")
+            .replace(/^```/i, "")
+            .replace(/```$/i, "")
+            .trim();
+
+    try {
+        return JSON.parse(cleaned);
+    } catch (error) {
+        const match =
+            cleaned.match(/\{[\s\S]*\}/);
+
+        if (!match) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(match[0]);
+        } catch (innerError) {
+            return null;
+        }
+    }
+}
+
+function getFallbackIncidentGuidance(route, alerts) {
+    const hasAlerts =
+        Array.isArray(alerts) &&
+        alerts.length > 0;
+
+    return {
+        source:
+            "fallback",
+        impact:
+            hasAlerts ? "possible" : "none",
+        summary:
+            hasAlerts
+                ? "LTA is reporting an active train service alert. Review your route before leaving."
+                : "No active LTA train service alerts are currently reported.",
+        suggestions:
+            hasAlerts
+                ? [
+                    {
+                        title:
+                            "Check your route",
+                        detail:
+                            "Review the route you plan to take before leaving."
+                    },
+                    {
+                        title:
+                            "Allow extra time",
+                        detail:
+                            "Leave earlier if the alert affects your line or stations."
+                    },
+                    {
+                        title:
+                            "Check for alternatives",
+                        detail:
+                            "Look for another train line or bus service if your journey is affected."
+                    }
+                ]
+                : []
+    };
+}
+
+app.post("/api/incidents/gemini-summary", async (req, res) => {
+    const apiKey =
+        process.env.GEMINI_API_KEY;
+
+    const route =
+        req.body && req.body.route
+            ? req.body.route
+            : {};
+
+    const alerts =
+        req.body && Array.isArray(req.body.alerts)
+            ? req.body.alerts
+            : [];
+
+    if (!apiKey) {
+        res.json(
+            getFallbackIncidentGuidance(
+                route,
+                alerts
+            )
+        );
+        return;
+    }
+
+    try {
+        const prompt =
+            [
+                "You are helping a Singapore public transport commuter.",
+                route && route.start
+                    ? "Summarise the LTA train service alert for this saved route and suggest practical route actions."
+                    : "Summarise the active LTA train service alert for commuters and suggest practical actions.",
+                "Use only the supplied route and alert data. Do not invent official incident details.",
+                "Keep suggestions general when no saved route is supplied. Do not recommend a specific route unless the supplied data supports it.",
+                "Return strict JSON only with this shape:",
+                "{\"impact\":\"none|possible|affected\",\"summary\":\"short user friendly summary\",\"suggestions\":[{\"title\":\"short title\",\"detail\":\"one sentence\"}]}",
+                "",
+                `Saved route context: ${JSON.stringify(route)}`,
+                `LTA alerts: ${JSON.stringify(alerts).slice(0, 12000)}`
+            ].join("\n");
+
+        const response =
+            await fetch(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                {
+                    method:
+                        "POST",
+                    headers:
+                        {
+                            "Content-Type":
+                                "application/json",
+                            "x-goog-api-key":
+                                apiKey
+                        },
+                    body:
+                        JSON.stringify({
+                            contents:
+                                [
+                                    {
+                                        parts:
+                                            [
+                                                {
+                                                    text:
+                                                        prompt
+                                                }
+                                            ]
+                                    }
+                                ],
+                            generationConfig:
+                                {
+                                    temperature:
+                                        0.2,
+                                    maxOutputTokens:
+                                        700,
+                                    response_mime_type:
+                                        "application/json"
+                                }
+                        })
+                }
+            );
+
+        if (!response.ok) {
+            throw new Error(
+                `Gemini request failed: ${response.status}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+        const text =
+            data.candidates &&
+            data.candidates[0] &&
+            data.candidates[0].content &&
+            data.candidates[0].content.parts &&
+            data.candidates[0].content.parts[0]
+                ? data.candidates[0].content.parts[0].text
+                : "";
+
+        const parsed =
+            extractGeminiJson(text);
+
+        if (!parsed) {
+            throw new Error(
+                "Gemini returned non-JSON guidance"
+            );
+        }
+
+        res.json({
+            source:
+                "gemini",
+            impact:
+                parsed.impact || "possible",
+            summary:
+                parsed.summary || "",
+            suggestions:
+                Array.isArray(parsed.suggestions)
+                    ? parsed.suggestions.slice(0, 4)
+                    : []
+        });
+    } catch (error) {
+        console.error(
+            "Gemini incident summary error:",
+            error
+        );
+
+        res.json(
+            getFallbackIncidentGuidance(
+                route,
+                alerts
+            )
+        );
+    }
+});
+
 
 // =====================================================
 // REAL-TIME JOURNEY SYSTEM

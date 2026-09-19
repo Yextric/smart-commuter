@@ -5725,6 +5725,8 @@ function getRoutePriorityLabel(value) {
     const labels = {
         fastest:
             "fastest alternative",
+        "least-walking":
+            "least walking",
         "least-transfer":
             "fewer transfers",
         "bus-friendly":
@@ -6030,7 +6032,90 @@ function getNextReminderTime(route) {
     return reminder;
 }
 
-function showRouteReminderPopup(route) {
+function getAlertSearchText(alert) {
+    return [
+        alert.id,
+        alert.cause,
+        alert.effect,
+        alert.header,
+        alert.description,
+        ...(Array.isArray(alert.informedEntities)
+            ? alert.informedEntities.flatMap(entity => [
+                entity.agencyId,
+                entity.routeId,
+                entity.stopId
+            ])
+            : [])
+    ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase();
+}
+
+function isRouteLikelyAffectedByAlert(route, alert) {
+    const alertText =
+        getAlertSearchText(alert);
+
+    const routeTerms =
+        [
+            route.start,
+            route.end,
+            route.startPlaceId,
+            route.endPlaceId,
+            ...(Array.isArray(route.viaPoints)
+                ? route.viaPoints.flatMap(point => [
+                    point.name,
+                    point.address,
+                    point.placeId
+                ])
+                : [])
+        ]
+            .filter(Boolean)
+            .map(value => String(value).toLowerCase())
+            .filter(value => value.length >= 3);
+
+    return routeTerms.some(
+        term => alertText.includes(term)
+    );
+}
+
+async function getRouteActiveAlerts(route) {
+    const useMockFault =
+        new URLSearchParams(
+            window.location.search
+        ).get("mockFault") === "1";
+
+    const response =
+        await fetch(
+            useMockFault
+                ? "/api/lta/train-alerts?mock=fault"
+                : "/api/lta/train-alerts"
+        );
+
+    if (!response.ok) {
+        throw new Error(
+            "Unable to fetch LTA alerts"
+        );
+    }
+
+    const data =
+        await response.json();
+
+    const alerts =
+        Array.isArray(data.alerts)
+            ? data.alerts
+            : [];
+
+    return alerts.filter(
+        alert =>
+            isRouteLikelyAffectedByAlert(
+                route,
+                alert
+            )
+    );
+}
+
+function showRouteReminderPopup(route, alerts) {
 
     const existingPopup =
         document.querySelector(
@@ -6051,11 +6136,11 @@ function showRouteReminderPopup(route) {
 
     popup.innerHTML = `
         <div class="route-reminder-card">
-            <span class="section-label">ROUTE REMINDER</span>
+            <span class="section-label">ROUTE DISRUPTION</span>
             <h3>${escapeHtml(route.name || "Saved route")}</h3>
-            <p>${escapeHtml(route.start)} to ${escapeHtml(route.end)} is coming up soon.</p>
+            <p>${escapeHtml(route.start)} to ${escapeHtml(route.end)} may be affected by ${escapeHtml(alerts.length)} active LTA train alert${alerts.length === 1 ? "" : "s"}.</p>
             <div class="route-reminder-actions">
-                <button type="button" class="reminder-open-route">View route map</button>
+                <button type="button" class="reminder-open-route">View summary and map</button>
                 <button type="button" class="reminder-dismiss">Dismiss</button>
             </div>
         </div>
@@ -6106,36 +6191,52 @@ function scheduleRouteReminder(route) {
 
     const timerId =
         setTimeout(
-            () => {
+            async () => {
+                let activeAlerts = [];
 
-                showRouteReminderPopup(
-                    route
-                );
-
-                if (
-                    "Notification" in window &&
-                    Notification.permission ===
-                        "granted"
-                ) {
-
-                    const notification =
-                        new Notification(
-                            route.name ||
-                                "Route reminder",
-                            {
-                                body:
-                                    `${route.start} to ${route.end} is coming up soon.`
-                            }
+                try {
+                    activeAlerts =
+                        await getRouteActiveAlerts(
+                            route
                         );
+                } catch (error) {
+                    console.error(
+                        "Route disruption check failed:",
+                        error
+                    );
+                }
 
-                    notification.onclick =
-                        () => {
-                            window.focus();
-                            window.location.href =
-                                getRouteDetailUrl(
-                                    route.id
-                                );
-                        };
+                if (activeAlerts.length > 0) {
+                    showRouteReminderPopup(
+                        route,
+                        activeAlerts
+                    );
+
+                    if (
+                        "Notification" in window &&
+                        Notification.permission ===
+                            "granted"
+                    ) {
+
+                        const notification =
+                            new Notification(
+                                route.name ||
+                                    "Route disruption",
+                                {
+                                    body:
+                                        `${route.start} to ${route.end} may be affected by an active LTA alert.`
+                                }
+                            );
+
+                        notification.onclick =
+                            () => {
+                                window.focus();
+                                window.location.href =
+                                    getRouteDetailUrl(
+                                        route.id
+                                    );
+                            };
+                    }
                 }
 
                 scheduleRouteReminder(
@@ -6413,9 +6514,7 @@ function addSavedCommuterRouteV2() {
                 notifyMinutes,
 
             priority:
-                routePrioritySelect
-                    ? routePrioritySelect.value
-                    : "fastest",
+                "fastest",
 
             createdAt:
                 new Date().toISOString()
@@ -6444,7 +6543,7 @@ function addSavedCommuterRouteV2() {
     }
 
     showCommuterMessage(
-        `Route alert saved for ${travelTime}. A reminder popup will appear ${notifyMinutes} minutes before you leave while this app is open.`
+        `Route alert saved for ${travelTime}. The app will check LTA ${notifyMinutes} minutes before you leave and only alert if your route looks affected.`
     );
 
     if (
@@ -8074,6 +8173,36 @@ const incidentDescription =
         )
         : null;
 
+const incidentGuidanceHeading =
+    document.getElementById(
+        "incidentGuidanceHeading"
+    );
+
+const incidentGuidanceSummary =
+    document.getElementById(
+        "incidentGuidanceSummary"
+    );
+
+const incidentGuidanceSuggestions =
+    document.getElementById(
+        "incidentGuidanceSuggestions"
+    );
+
+const mapIncidentGuidanceHeading =
+    document.getElementById(
+        "mapIncidentGuidanceHeading"
+    );
+
+const mapIncidentGuidanceSummary =
+    document.getElementById(
+        "mapIncidentGuidanceSummary"
+    );
+
+const mapIncidentGuidanceSuggestions =
+    document.getElementById(
+        "mapIncidentGuidanceSuggestions"
+    );
+
 function formatLtaAlertTime(
     timestamp
 ) {
@@ -8151,6 +8280,98 @@ function renderLtaTrainAlerts(
     }
 }
 
+function renderIncidentGuidanceSuggestions(
+    container,
+    suggestions
+) {
+    if (!container) {
+        return;
+    }
+
+    container.innerHTML =
+        Array.isArray(suggestions)
+            ? suggestions.slice(0, 4).map(suggestion => `
+                <article class="incident-guidance-suggestion">
+                    <strong>${escapeHtml(suggestion.title || "Suggestion")}</strong>
+                    <span>${escapeHtml(suggestion.detail || "")}</span>
+                </article>
+            `).join("")
+            : "";
+}
+
+function renderIncidentGuidance(
+    guidance
+) {
+    const heading =
+        guidance && guidance.impact === "affected"
+            ? "Your commute may be affected"
+            : guidance && guidance.impact === "possible"
+                ? "Check before you travel"
+                : "No active disruption reported";
+
+    const summary =
+        guidance && guidance.summary
+            ? guidance.summary
+            : "Review the latest LTA service information before leaving.";
+
+    [
+        [incidentGuidanceHeading, heading],
+        [mapIncidentGuidanceHeading, heading]
+    ].forEach(([element, text]) => {
+        if (element) {
+            element.textContent = text;
+        }
+    });
+
+    [
+        [incidentGuidanceSummary, summary],
+        [mapIncidentGuidanceSummary, summary]
+    ].forEach(([element, text]) => {
+        if (element) {
+            element.textContent = text;
+        }
+    });
+
+    renderIncidentGuidanceSuggestions(
+        incidentGuidanceSuggestions,
+        guidance && guidance.suggestions
+    );
+
+    renderIncidentGuidanceSuggestions(
+        mapIncidentGuidanceSuggestions,
+        guidance && guidance.suggestions
+    );
+}
+
+async function loadGeminiIncidentGuidance(
+    alerts
+) {
+    const response =
+        await fetch(
+            "/api/incidents/gemini-summary",
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    route: {},
+                    alerts: alerts
+                })
+            }
+        );
+
+    if (!response.ok) {
+        throw new Error(
+            "Unable to load Gemini incident guidance"
+        );
+    }
+
+    renderIncidentGuidance(
+        await response.json()
+    );
+}
+
 async function loadLtaTrainAlerts() {
 
     try {
@@ -8180,6 +8401,12 @@ async function loadLtaTrainAlerts() {
             data
         );
 
+        await loadGeminiIncidentGuidance(
+            Array.isArray(data.alerts)
+                ? data.alerts
+                : []
+        );
+
     } catch (error) {
 
         console.error(
@@ -8197,7 +8424,76 @@ async function loadLtaTrainAlerts() {
             incidentDescription.textContent =
                 "The app could not reach the LTA train service alert feed. Try again later.";
         }
+
+        renderIncidentGuidance({
+            impact: "possible",
+            summary: "Incident guidance is temporarily unavailable. Check the LTA service status before travelling.",
+            suggestions: []
+        });
     }
 }
+
+function setupBottomAppNavigation() {
+    const navButtons =
+        document.querySelectorAll(
+            "[data-app-tab-target]"
+        );
+
+    if (!navButtons.length) {
+        return;
+    }
+
+    const setActiveTab =
+        tabName => {
+            document.body.dataset.appTab =
+                tabName;
+
+            navButtons.forEach(
+                button => {
+                    const isActive =
+                        button.dataset.appTabTarget ===
+                        tabName;
+
+                    button.classList.toggle(
+                        "active",
+                        isActive
+                    );
+
+                    button.setAttribute(
+                        "aria-current",
+                        isActive ? "page" : "false"
+                    );
+                }
+            );
+
+            window.scrollTo(
+                {
+                    top:
+                        0,
+                    behavior:
+                        "smooth"
+                }
+            );
+        };
+
+    navButtons.forEach(
+        button => {
+            button.addEventListener(
+                "click",
+                () => {
+                    setActiveTab(
+                        button.dataset.appTabTarget
+                    );
+                }
+            );
+        }
+    );
+
+    setActiveTab(
+        document.body.dataset.appTab || "commute"
+    );
+}
+
+setupBottomAppNavigation();
 
 loadLtaTrainAlerts();

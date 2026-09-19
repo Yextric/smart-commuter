@@ -17,9 +17,10 @@ body {
     min-height: 100vh;
 }
 
-body:not(.logged-in) .topbar,
-body:not(.logged-in) .container,
-body:not(.logged-in) footer {
+body.auth-gated:not(.logged-in) .topbar,
+body.auth-gated:not(.logged-in) .container,
+body.auth-gated:not(.logged-in) footer,
+body.auth-gated:not(.logged-in) .bottom-app-nav {
     display: none;
 }
 
@@ -357,6 +358,83 @@ body.logged-in .login-screen {
 
     margin: auto;
     padding: 0 28px 60px;
+}
+
+body.logged-in .container {
+    padding-bottom: 128px;
+}
+
+body[data-app-tab="commute"] .meeting-preference,
+body[data-app-tab="commute"] .meetup-finder,
+body[data-app-tab="commute"] .journey-code-section,
+body[data-app-tab="commute"] #result,
+body[data-app-tab="commute"] #liveJourneySection,
+body[data-app-tab="commute"] .destination-alarm {
+    display: none;
+}
+
+body[data-app-tab="meetup"] .hero,
+body[data-app-tab="meetup"] .journey-card > .section-heading,
+body[data-app-tab="meetup"] .journey-card > .input-grid,
+body[data-app-tab="meetup"] .journey-card > .commute-settings,
+body[data-app-tab="meetup"] .journey-card > #findButton,
+body[data-app-tab="meetup"] .journey-card > .saved-routes-panel,
+body[data-app-tab="meetup"] .journey-card > #customNotifyField,
+body[data-app-tab="meetup"] .incident-section,
+body[data-app-tab="meetup"] .destination-alarm {
+    display: none;
+}
+
+body[data-app-tab="reminder"] .hero,
+body[data-app-tab="reminder"] .journey-card,
+body[data-app-tab="reminder"] .incident-section,
+body[data-app-tab="reminder"] #result,
+body[data-app-tab="reminder"] #liveJourneySection {
+    display: none;
+}
+
+.bottom-app-nav {
+    position: fixed;
+    left: 50%;
+    bottom: 18px;
+    z-index: 30;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+    width: min(560px, calc(100% - 28px));
+    padding: 8px;
+    border: 1px solid rgba(216, 225, 220, 0.95);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 18px 44px rgba(23, 59, 42, 0.16);
+    transform: translateX(-50%);
+    backdrop-filter: blur(16px);
+}
+
+.bottom-app-nav-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    min-height: 58px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #68756d;
+    font-size: 12px;
+    font-weight: 900;
+    cursor: pointer;
+}
+
+.bottom-app-nav-btn.active {
+    background: #173b2a;
+    color: #ffffff;
+}
+
+.bottom-app-nav-icon {
+    font-size: 11px;
+    letter-spacing: 0.8px;
 }
 
 
@@ -1230,6 +1308,35 @@ body.logged-in .login-screen {
     font-weight: 800;
 }
 
+.map-route-options {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    align-items: end;
+    margin-top: 14px;
+}
+
+.route-option-field label {
+    display: block;
+    margin-bottom: 6px;
+    color: #7b8d83;
+    font-size: 12px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
+.route-option-field select {
+    width: 100%;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid #d8e1dc;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #243129;
+    font-size: 14px;
+    font-weight: 700;
+}
+
 .via-points-list {
     display: flex;
     flex-wrap: wrap;
@@ -1627,11 +1734,13 @@ body.logged-in .login-screen {
 
 .incident-section {
     display: grid;
-    grid-template-columns: 0.85fr 1.15fr;
+    grid-template-columns: 1fr;
     gap: 18px;
 }
 
 .incident-card,
+.incident-guidance-panel,
+.map-incident-guidance,
 .alternative-routes {
     padding: 22px;
     border: 1px solid #e1e7e3;
@@ -1664,6 +1773,63 @@ body.logged-in .login-screen {
     line-height: 1.5;
 }
 
+.incident-guidance-panel,
+.map-incident-guidance {
+    display: grid;
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.incident-guidance-panel h3,
+.map-incident-guidance h3 {
+    margin: 4px 0 8px;
+    font-size: 18px;
+}
+
+.incident-guidance-panel p,
+.map-incident-guidance p {
+    margin: 0;
+    color: #6f766f;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.incident-guidance-suggestions {
+    display: grid;
+    gap: 10px;
+}
+
+.incident-guidance-suggestion {
+    padding: 13px;
+    border: 1px solid #e5e9e6;
+    border-radius: 12px;
+    background: #fafcfb;
+}
+
+.incident-guidance-suggestion strong,
+.incident-guidance-suggestion span {
+    display: block;
+}
+
+.incident-guidance-suggestion strong {
+    color: #243129;
+    font-size: 14px;
+}
+
+.incident-guidance-suggestion span {
+    margin-top: 6px;
+    color: #7a877f;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.map-incident-guidance {
+    margin-bottom: 18px;
+    border-color: #d6e5dc;
+    background: #f6fbf7;
+}
+
 .alternative-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1690,6 +1856,58 @@ body.logged-in .login-screen {
 
 .alternative-card span {
     margin-top: 8px;
+    color: #7a877f;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.route-incident-panel {
+    display: grid;
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    gap: 16px;
+    padding: 22px;
+    border: 1px solid #e1e7e3;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 10px 30px rgba(32, 55, 42, 0.06);
+}
+
+.route-incident-panel h3 {
+    margin: 4px 0 8px;
+    font-size: 20px;
+}
+
+.route-incident-panel p {
+    margin: 0;
+    color: #6f766f;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.route-incident-suggestions {
+    display: grid;
+    gap: 10px;
+}
+
+.route-incident-suggestion {
+    padding: 13px;
+    border: 1px solid #e5e9e6;
+    border-radius: 12px;
+    background: #fafcfb;
+}
+
+.route-incident-suggestion strong,
+.route-incident-suggestion span {
+    display: block;
+}
+
+.route-incident-suggestion strong {
+    color: #243129;
+    font-size: 14px;
+}
+
+.route-incident-suggestion span {
+    margin-top: 6px;
     color: #7a877f;
     font-size: 12px;
     line-height: 1.45;
@@ -3154,6 +3372,19 @@ body.elderly-mode .incident-time {
    ----------------------------------------- */
 
 @media (max-width: 600px) {
+
+    .map-route-options {
+        grid-template-columns: 1fr;
+    }
+
+    .route-incident-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .incident-guidance-panel,
+    .map-incident-guidance {
+        grid-template-columns: 1fr;
+    }
 
     .alarm-option-buttons {
         gap: 7px;
