@@ -1446,6 +1446,14 @@ io.on(
                         data.longitude
                     );
 
+                const heading =
+                    typeof data.heading === "number" &&
+                    Number.isFinite(data.heading) &&
+                    data.heading >= 0 &&
+                    data.heading < 360
+                        ? data.heading
+                        : null;
+
 
                 console.log(
                     "Location received:",
@@ -1457,7 +1465,10 @@ io.on(
                             latitude,
 
                         longitude:
-                            longitude
+                            longitude,
+
+                        heading:
+                            heading
                     }
                 );
 
@@ -1479,6 +1490,36 @@ io.on(
                     }
                 );
 
+            }
+        );
+
+        socket.on(
+            "leave-journey",
+            () => {
+                const journeyCode =
+                    socket.data.journeyCode;
+
+                if (
+                    !journeyCode ||
+                    !journeys.has(journeyCode)
+                ) {
+                    return;
+                }
+
+                const members =
+                    journeys.get(journeyCode);
+
+                members.delete(socket.id);
+                socket.leave(journeyCode);
+                socket.data.journeyCode = null;
+
+                socket.to(journeyCode).emit(
+                    "friend-left"
+                );
+
+                if (members.size === 0) {
+                    journeys.delete(journeyCode);
+                }
             }
         );
 

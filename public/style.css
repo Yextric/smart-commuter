@@ -3172,6 +3172,27 @@ body.elderly-mode .incident-time {
 }
 
 
+.leave-journey-btn {
+    width: 100%;
+    margin-top: 14px;
+    padding: 11px 16px;
+    border: 1px solid #c96b72;
+    border-radius: 10px;
+    background: white;
+    color: #a74650;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+
+.leave-journey-btn:hover {
+    background: #a74650;
+    color: white;
+}
+
+
 /* =====================================================
    HIDDEN STATE
    ===================================================== */
