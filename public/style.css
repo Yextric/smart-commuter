@@ -594,13 +594,17 @@ body[data-app-tab="reminder"] #liveJourneySection {
 .route-line {
     position: absolute;
 
-    height: 2px;
+    height: 6px;
+
+    border-radius: 999px;
 
     background: #a7c3b1;
 
     transform-origin: left center;
 
     z-index: 1;
+
+    box-shadow: 0 3px 12px rgba(23, 59, 42, 0.12);
 }
 
 .line-1 {
@@ -608,6 +612,13 @@ body[data-app-tab="reminder"] #liveJourneySection {
     top: 100px;
     left: 95px;
     transform: rotate(25deg);
+    background: linear-gradient(
+        90deg,
+        #d42e12 0%,
+        #d42e12 48%,
+        #009645 48%,
+        #009645 100%
+    );
 }
 
 .line-2 {
@@ -615,6 +626,13 @@ body[data-app-tab="reminder"] #liveJourneySection {
     right: 95px;
     bottom: 100px;
     transform: rotate(25deg);
+    background: linear-gradient(
+        90deg,
+        #0055b8 0%,
+        #0055b8 45%,
+        #fa9e0d 45%,
+        #fa9e0d 100%
+    );
 }
 
 
@@ -2882,15 +2900,16 @@ body.elderly-mode .incident-time {
 
 .share-location-btn {
     border: none;
-    border-radius: 12px;
-    padding: 10px 16px;
+    border-radius: 999px;
+    padding: 11px 18px;
     background: #3f7d65;
     color: white;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 800;
     cursor: pointer;
     transition: 0.2s ease;
-    margin: 20px;
+    margin: 18px 0;
+    box-shadow: 0 8px 20px rgba(63, 125, 101, 0.18);
 }
 
 .share-location-btn:hover {
@@ -2899,7 +2918,8 @@ body.elderly-mode .incident-time {
 }
 
 .share-location-btn.active {
-    background: #e85d75;
+    background: #173b2a;
+    box-shadow: 0 8px 24px rgba(23, 59, 42, 0.24);
 }
 
 #liveMap {
@@ -2910,15 +2930,38 @@ body.elderly-mode .incident-time {
     background: #f3f3f6;
 }
 
-.location-status {
-    margin-top: 10px;
+.location-status-text {
+    width: fit-content;
+    margin-top: 14px;
+    padding: 9px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #d8e1dc;
+    border-radius: 999px;
+    background: #f7faf8;
+    color: #627067;
     font-size: 12px;
-    color: #777783;
+    font-weight: 800;
 }
 
-.location-status.active {
-    color: #4a9b72;
-    font-weight: 600;
+.location-status-text::before {
+    content: "";
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #a8b5ad;
+}
+
+.location-status-text.active {
+    border-color: #bcd9c7;
+    background: #eef7f1;
+    color: #2f6b49;
+}
+
+.location-status-text.active::before {
+    background: #2fbd66;
+    box-shadow: 0 0 0 4px rgba(47, 189, 102, 0.14);
 }
 
 /* Mobile */
@@ -3346,12 +3389,30 @@ body.elderly-mode .incident-time {
    ===================================================== */
 
 .location-legend {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 500;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 24px;
-    margin-top: 12px;
-    font-size: 14px;
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 8px;
+    padding: 12px;
+    border: 1px solid rgba(216, 225, 220, 0.95);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.94);
+    color: #243129;
+    font-size: 12px;
+    font-weight: 800;
+    box-shadow: 0 8px 24px rgba(32, 55, 42, 0.16);
+}
+
+.location-legend-title {
+    color: #829088;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    text-transform: uppercase;
 }
 
 .location-legend-item {
@@ -3361,18 +3422,21 @@ body.elderly-mode .incident-time {
 }
 
 .legend-dot {
-    width: 10px;
-    height: 10px;
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    border: 2px solid #ffffff;
     border-radius: 50%;
     display: inline-block;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
 }
 
 .legend-you {
-    background: #8b5cf6;
+    background: #173b2a;
 }
 
 .legend-friend {
-    background: #3b82f6;
+    background: #9b3d50;
 }
 
 /* =====================================================

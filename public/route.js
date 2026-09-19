@@ -776,6 +776,157 @@ function getRouteSummary(route) {
     };
 }
 
+let activeRoutePolylines = [];
+
+function clearColoredRoutePolylines() {
+    activeRoutePolylines.forEach(polyline => {
+        polyline.setMap(null);
+    });
+
+    activeRoutePolylines = [];
+}
+
+function normaliseRouteLineName(value) {
+    const text =
+        String(value || "")
+            .trim()
+            .toUpperCase();
+
+    if (text === "NE" || text.includes("NORTH EAST")) return "NE";
+    if (text === "NS" || text.includes("NORTH SOUTH")) return "NS";
+    if (text === "EW" || text.includes("EAST WEST")) return "EW";
+    if (text === "CC" || text.includes("CIRCLE")) return "CC";
+    if (text === "DT" || text.includes("DOWNTOWN")) return "DT";
+    if (text === "TE" || text.includes("THOMSON")) return "TE";
+    if (text === "CR" || text.includes("CROSS ISLAND")) return "CR";
+
+    return text;
+}
+
+function getRouteStepColor(step) {
+    if (
+        step.travel_mode ===
+        google.maps.TravelMode.WALKING
+    ) {
+        return "#8f9b94";
+    }
+
+    const transit =
+        step.transit;
+
+    if (!transit || !transit.line) {
+        return "#173b2a";
+    }
+
+    const vehicleType =
+        transit.line.vehicle &&
+        transit.line.vehicle.type
+            ? String(transit.line.vehicle.type).toUpperCase()
+            : "";
+
+    if (vehicleType.includes("BUS")) {
+        return "#00c853";
+    }
+
+    const line =
+        normaliseRouteLineName(
+            transit.line.short_name ||
+            transit.line.name
+        );
+
+    const lineColors = {
+        NE:
+            "#9b26b6",
+        NS:
+            "#d42e12",
+        EW:
+            "#009645",
+        CC:
+            "#fa9e0d",
+        DT:
+            "#0055b8",
+        TE:
+            "#9b6b43",
+        CR:
+            "#e78ac3"
+    };
+
+    if (lineColors[line]) {
+        return lineColors[line];
+    }
+
+    if (transit.line.color) {
+        return `#${String(transit.line.color).replace(/^#/, "")}`;
+    }
+
+    return "#173b2a";
+}
+
+function drawColoredRoute(
+    map,
+    route,
+    options = {}
+) {
+    if (!options.append) {
+        clearColoredRoutePolylines();
+    }
+
+    if (!route || !Array.isArray(route.legs)) {
+        return;
+    }
+
+    route.legs.forEach(leg => {
+        (leg.steps || []).forEach(step => {
+            if (!step.path || step.path.length === 0) {
+                return;
+            }
+
+            const isWalking =
+                step.travel_mode ===
+                google.maps.TravelMode.WALKING;
+
+            const polyline =
+                new google.maps.Polyline({
+                    map:
+                        map,
+                    path:
+                        step.path,
+                    strokeColor:
+                        getRouteStepColor(step),
+                    strokeOpacity:
+                        isWalking ? 0.65 : 0.95,
+                    strokeWeight:
+                        isWalking ? 4 : 7,
+                    zIndex:
+                        isWalking ? 1 : 2,
+                    icons:
+                        isWalking
+                            ? [
+                                {
+                                    icon: {
+                                        path:
+                                            "M 0,-1 0,1",
+                                        strokeOpacity:
+                                            1,
+                                        scale:
+                                            3
+                                    },
+                                    offset:
+                                        "0",
+                                    repeat:
+                                        "14px"
+                                }
+                            ]
+                            : []
+                });
+
+            activeRoutePolylines.push(
+                polyline
+            );
+        });
+    });
+}
+
 function renderRouteAlternatives(
     result,
     selectedIndex,
@@ -1384,12 +1535,7 @@ async function renderSegmentedTransitRoute(
         stops
     );
 
-    const colors = [
-        "#173b2a",
-        "#4d8a67",
-        "#735a9e",
-        "#9b7b40"
-    ];
+    clearColoredRoutePolylines();
 
     for (
         let index = 0;
@@ -1429,26 +1575,24 @@ async function renderSegmentedTransitRoute(
                 suppressMarkers:
                     false,
 
+                suppressPolylines:
+                    true,
+
                 preserveViewport:
-                    index !== 0,
-
-                polylineOptions:
-                    {
-                        strokeColor:
-                            colors[
-                                index % colors.length
-                            ],
-
-                        strokeWeight:
-                            6,
-
-                        strokeOpacity:
-                            0.85
-                    }
+                    index !== 0
             });
 
         renderer.setDirections(
             result
+        );
+
+        drawColoredRoute(
+            map,
+            result.routes[0],
+            {
+                append:
+                    true
+            }
         );
     }
 
@@ -1550,6 +1694,9 @@ async function renderGoogleRoute(route) {
             suppressMarkers:
                 false,
 
+            suppressPolylines:
+                true,
+
             routeIndex:
                 Number(route.preferredRouteIndex || 0)
         });
@@ -1598,6 +1745,11 @@ async function renderGoogleRoute(route) {
                 selectedIndex
             );
 
+            drawColoredRoute(
+                map,
+                result.routes[selectedIndex]
+            );
+
             const handleAlternativeSelect =
                 nextIndex => {
                     route.preferredRouteIndex =
@@ -1613,6 +1765,11 @@ async function renderGoogleRoute(route) {
 
                     directionsRenderer.setRouteIndex(
                         nextIndex
+                    );
+
+                    drawColoredRoute(
+                        map,
+                        result.routes[nextIndex]
                     );
 
                     renderRouteAlternatives(
