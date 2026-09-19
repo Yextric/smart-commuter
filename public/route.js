@@ -1,5 +1,7 @@
 const SAVED_ROUTES_STORAGE_KEY =
     "commuteTogetherSavedRoutes";
+const ROUTE_DECISIONS_STORAGE_KEY =
+    "commuteTogetherRouteDecisions";
 
 function getSavedRoutes() {
     try {
@@ -146,38 +148,89 @@ function setIncidentText(heading, summary) {
     );
 }
 
-function renderIncidentSuggestions(suggestions) {
+function renderLtaAlerts(alerts) {
     const container =
         document.getElementById(
-            "routeIncidentSuggestions"
+            "routeLtaAlerts"
         );
 
     if (!container) {
         return;
     }
 
-    if (
-        !Array.isArray(suggestions) ||
-        suggestions.length === 0
-    ) {
-        container.innerHTML =
-            "";
+    if (!Array.isArray(alerts) || alerts.length === 0) {
+        container.innerHTML = "";
         return;
     }
 
     container.innerHTML =
-        suggestions
-            .map(suggestion => `
-                <article class="route-incident-suggestion">
-                    <strong>${escapeHtml(suggestion.title || "Suggestion")}</strong>
-                    <span>${escapeHtml(suggestion.detail || "")}</span>
+        alerts
+            .map(alert => `
+                <article class="lta-incident-alert">
+                    <strong>${escapeHtml(alert.header || "LTA train service alert")}</strong>
+                    <span>${escapeHtml(alert.description || "No further details were supplied by LTA.")}</span>
+                    ${alert.decisionSummary
+                        ? `<em>Gemini: ${escapeHtml(alert.decisionSummary)}</em>`
+                        : ""}
                 </article>
             `)
             .join("");
 }
 
+function getTodayKey() {
+    const today =
+        new Date();
+
+    return [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0")
+    ].join("-");
+}
+
+function saveRouteDecision(route, affectedAlerts, decisions) {
+    let savedDecisions = {};
+
+    try {
+        savedDecisions =
+            JSON.parse(
+                localStorage.getItem(
+                    ROUTE_DECISIONS_STORAGE_KEY
+                ) || "{}"
+            );
+    } catch (error) {
+        console.error(
+            "Unable to read route decisions:",
+            error
+        );
+    }
+
+    savedDecisions[route.id] = {
+        date:
+            getTodayKey(),
+        evaluatedAt:
+            new Date().toISOString(),
+        status:
+            "complete",
+        affectedAlerts:
+            affectedAlerts,
+        decisions:
+            decisions
+    };
+
+    localStorage.setItem(
+        ROUTE_DECISIONS_STORAGE_KEY,
+        JSON.stringify(savedDecisions)
+    );
+}
+
 async function loadRouteIncidentGuidance(route) {
     try {
+        setIncidentText(
+            "Checking this route",
+            "Fetching the latest LTA disruptions before deciding whether this route is affected."
+        );
+
         const useMockFault =
             new URLSearchParams(
                 window.location.search
@@ -205,55 +258,97 @@ async function loadRouteIncidentGuidance(route) {
                 : [];
 
         if (alerts.length === 0) {
-            setIncidentText(
-                "No active train alerts",
-                "LTA is not reporting any active GTFS realtime train service alerts right now."
+            saveRouteDecision(
+                route,
+                [],
+                []
             );
 
-            renderIncidentSuggestions([]);
+            setIncidentText(
+                "No active train alerts",
+                "LTA has no current disruptions, so Gemini was not called."
+            );
+
+            renderLtaAlerts([]);
             return;
         }
 
-        const guidanceResponse =
-            await fetch(
-                "/api/incidents/gemini-summary",
-                {
-                    method:
-                        "POST",
-                    headers:
-                        {
-                            "Content-Type":
-                                "application/json"
-                        },
-                    body:
-                        JSON.stringify({
-                            route:
-                                route,
-                            alerts:
-                                alerts
-                        })
-                }
+        const decisions =
+            await Promise.all(
+                alerts.map(async alert => {
+                    const decisionResponse =
+                        await fetch(
+                            "/api/incidents/gemini-decision",
+                            {
+                                method:
+                                    "POST",
+                                headers: {
+                                    "Content-Type":
+                                        "application/json"
+                                },
+                                body:
+                                    JSON.stringify({
+                                        route:
+                                            route,
+                                        alert:
+                                            alert
+                                    })
+                            }
+                        );
+
+                    if (!decisionResponse.ok) {
+                        throw new Error(
+                            "Unable to decide whether an LTA alert affects this route"
+                        );
+                    }
+
+                    const decision =
+                        await decisionResponse.json();
+
+                    return {
+                        alert:
+                            alert,
+                        decision:
+                            decision
+                    };
+                })
             );
 
-        if (!guidanceResponse.ok) {
-            throw new Error(
-                "Unable to load Gemini incident guidance"
-            );
-        }
+        const affectedAlerts =
+            decisions
+                .filter(item => item.decision.affected === true)
+                .map(item => ({
+                    ...item.alert,
+                    decisionSummary:
+                        item.decision.summary || ""
+                }));
 
-        const guidance =
-            await guidanceResponse.json();
-
-        setIncidentText(
-            guidance.impact === "affected"
-                ? "Your route may be affected"
-                : "Active train alert found",
-            guidance.summary ||
-                "There is an active LTA train service alert. Check the suggestions before leaving."
+        saveRouteDecision(
+            route,
+            affectedAlerts,
+            decisions.map(item => ({
+                alertId:
+                    item.alert.id,
+                affected:
+                    item.decision.affected === true,
+                source:
+                    item.decision.source,
+                summary:
+                    item.decision.summary || ""
+            }))
         );
 
-        renderIncidentSuggestions(
-            guidance.suggestions
+        setIncidentText(
+            affectedAlerts.length > 0
+                ? "Your route may be affected"
+                : "No disruption affects this route",
+            affectedAlerts.length > 0
+                ? "Gemini identified the following LTA disruption as relevant to this saved route."
+                : "Gemini checked the active LTA disruptions and found none that affect this saved route."
+        );
+
+        renderLtaAlerts(
+            affectedAlerts
         );
     } catch (error) {
         console.error(
@@ -262,11 +357,11 @@ async function loadRouteIncidentGuidance(route) {
         );
 
         setIncidentText(
-            "Unable to check route incidents",
-            "The app could not load LTA or Gemini incident guidance right now."
+            "Unable to load route decision",
+            "The saved route decision could not be read. It will be checked again at the next scheduled alert time."
         );
 
-        renderIncidentSuggestions([]);
+        renderLtaAlerts([]);
     }
 }
 
@@ -315,24 +410,15 @@ function loadGoogleMapsScript(apiKey) {
 }
 
 function getRouteDepartureTime(route) {
-
-    if (
-        !route ||
-        !route.commuteTime
-    ) {
+    if (!route || !route.commuteTime) {
         return null;
     }
 
-    const [
-        hourText,
-        minuteText
-    ] = route.commuteTime.split(":");
+    const [hourText, minuteText] =
+        route.commuteTime.split(":");
 
-    const hour =
-        Number(hourText);
-
-    const minute =
-        Number(minuteText);
+    const hour = Number(hourText);
+    const minute = Number(minuteText);
 
     if (
         !Number.isFinite(hour) ||
@@ -341,8 +427,7 @@ function getRouteDepartureTime(route) {
         return null;
     }
 
-    const departureTime =
-        new Date();
+    const departureTime = new Date();
 
     departureTime.setHours(
         hour,

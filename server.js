@@ -735,6 +735,232 @@ function getFallbackIncidentGuidance(route, alerts) {
     };
 }
 
+function getFallbackIncidentDecision(route, alert) {
+    const routeText =
+        [
+            route && route.start,
+            route && route.end,
+            ...(route && Array.isArray(route.viaPoints)
+                ? route.viaPoints.flatMap(point => [
+                    point.name,
+                    point.address
+                ])
+                : [])
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+    const alertText =
+        [
+            alert && alert.header,
+            alert && alert.description,
+            alert && alert.routeId,
+            alert && alert.stopId,
+            ...(alert && Array.isArray(alert.informedEntities)
+                ? alert.informedEntities.flatMap(entity => [
+                    entity.routeId,
+                    entity.stopId
+                ])
+                : [])
+        ]
+            .filter(Boolean)
+            .join(" ")
+            .toLowerCase();
+
+    const routeWords =
+        routeText
+            .split(/[^a-z0-9]+/i)
+            .filter(word => word.length >= 4);
+
+    const affected =
+        routeWords.some(word => alertText.includes(word));
+
+    return {
+        source:
+            "fallback",
+        affected:
+            affected,
+        summary:
+            affected
+                ? "This LTA disruption may affect the saved route."
+                : "This LTA disruption does not match the saved route."
+    };
+}
+
+app.post("/api/incidents/gemini-decision", async (req, res) => {
+    const apiKey =
+        process.env.GEMINI_API_KEY;
+
+    const route =
+        req.body && req.body.route
+            ? req.body.route
+            : {};
+
+    const alert =
+        req.body && req.body.alert
+            ? req.body.alert
+            : null;
+
+    if (!alert) {
+        return res.status(400).json({
+            error:
+                "One LTA alert is required"
+        });
+    }
+
+    if (!apiKey) {
+        return res.json(
+            getFallbackIncidentDecision(
+                route,
+                alert
+            )
+        );
+    }
+
+    try {
+        const prompt =
+            [
+                "Decide whether this single LTA public transport disruption affects the commuter's exact saved route.",
+                "Return true only when the disruption can affect a service, station, stop, line, or journey segment used by this route.",
+                "Return false when the alert is unrelated. Do not infer an impact from geographic proximity alone.",
+                "Use only the supplied route and alert data.",
+                "Return strict JSON only with no explanation: {\"affected\":true|false}",
+                `Saved route: ${JSON.stringify(route)}`,
+                `Single LTA alert: ${JSON.stringify(alert)}`
+            ].join("\n");
+
+        const response =
+            await fetch(
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
+                {
+                    method:
+                        "POST",
+                    headers:
+                        {
+                            "Content-Type":
+                                "application/json",
+                            "x-goog-api-key":
+                                apiKey
+                        },
+                    body:
+                        JSON.stringify({
+                            contents: [
+                                {
+                                    parts: [
+                                        {
+                                            text:
+                                                prompt
+                                        }
+                                    ]
+                                }
+                            ],
+                            generationConfig: {
+                                temperature:
+                                    0,
+                                maxOutputTokens:
+                                    256,
+                                thinkingConfig: {
+                                    thinkingBudget:
+                                        0
+                                },
+                                responseMimeType:
+                                    "application/json",
+                                responseSchema: {
+                                    type:
+                                        "OBJECT",
+                                    properties: {
+                                        affected: {
+                                            type:
+                                                "BOOLEAN"
+                                        }
+                                    },
+                                    required: [
+                                        "affected"
+                                    ]
+                                }
+                            }
+                        })
+                }
+            );
+
+        if (!response.ok) {
+            const errorBody =
+                await response.text();
+
+            throw new Error(
+                `Gemini decision request failed: ${response.status} ${errorBody}`
+            );
+        }
+
+        const data =
+            await response.json();
+
+        const parts =
+            data.candidates &&
+            data.candidates[0] &&
+            data.candidates[0].content &&
+            Array.isArray(
+                data.candidates[0].content.parts
+            )
+                ? data.candidates[0].content.parts
+                : [];
+
+        const text =
+            parts
+                .map(part => part.text || "")
+                .join("\n")
+                .trim();
+
+        const finishReason =
+            data.candidates &&
+            data.candidates[0]
+                ? data.candidates[0].finishReason
+                : "unknown";
+
+        const parsed =
+            extractGeminiJson(text);
+
+        const affected =
+            parsed && typeof parsed.affected === "boolean"
+                ? parsed.affected
+                : parsed &&
+                  typeof parsed.affected === "string" &&
+                  /^(true|false)$/i.test(
+                      parsed.affected.trim()
+                  )
+                    ? parsed.affected.trim().toLowerCase() === "true"
+                    : null;
+
+        if (affected === null) {
+            throw new Error(
+                `Gemini returned an invalid route decision (${finishReason}): ${text}`
+            );
+        }
+
+        return res.json({
+            source:
+                "gemini",
+            affected:
+                affected,
+            summary:
+                ""
+        });
+    } catch (error) {
+        console.error(
+            "Gemini incident decision error:",
+            error
+        );
+
+        return res.json(
+            getFallbackIncidentDecision(
+                route,
+                alert
+            )
+        );
+    }
+});
+
 app.post("/api/incidents/gemini-summary", async (req, res) => {
     const apiKey =
         process.env.GEMINI_API_KEY;
@@ -763,11 +989,13 @@ app.post("/api/incidents/gemini-summary", async (req, res) => {
         const prompt =
             [
                 "You are helping a Singapore public transport commuter.",
-                route && route.start
-                    ? "Summarise the LTA train service alert for this saved route and suggest practical route actions."
+                route && route.start && route.end
+                    ? `Assess this exact saved commute from ${route.start} to ${route.end}.`
                     : "Summarise the active LTA train service alert for commuters and suggest practical actions.",
+                "Use the saved route details to explain whether the supplied LTA alert is relevant to this commute.",
                 "Use only the supplied route and alert data. Do not invent official incident details.",
-                "Keep suggestions general when no saved route is supplied. Do not recommend a specific route unless the supplied data supports it.",
+                "Mention the route's chosen preference or pass-by points when they materially affect the advice.",
+                "If there are no active alerts, say that clearly and give no disruption suggestions.",
                 "Return strict JSON only with this shape:",
                 "{\"impact\":\"none|possible|affected\",\"summary\":\"short user friendly summary\",\"suggestions\":[{\"title\":\"short title\",\"detail\":\"one sentence\"}]}",
                 "",
@@ -777,7 +1005,7 @@ app.post("/api/incidents/gemini-summary", async (req, res) => {
 
         const response =
             await fetch(
-                "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
+                "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent",
                 {
                     method:
                         "POST",

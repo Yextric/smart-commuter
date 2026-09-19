@@ -5483,19 +5483,34 @@ const commuteTimeInput =
         "commuteTime"
     );
 
-const notifyBeforeSelect =
+const checkModeSelect =
     document.getElementById(
-        "notifyBefore"
+        "checkMode"
     );
 
-const customNotifyField =
+const checkWindowSelect =
     document.getElementById(
-        "customNotifyField"
+        "checkWindow"
     );
 
-const customNotifyBeforeInput =
+const checkBeforeField =
     document.getElementById(
-        "customNotifyBefore"
+        "checkBeforeField"
+    );
+
+const checkRangeFields =
+    document.getElementById(
+        "checkRangeFields"
+    );
+
+const checkRangeStartInput =
+    document.getElementById(
+        "checkRangeStart"
+    );
+
+const checkRangeEndInput =
+    document.getElementById(
+        "checkRangeEnd"
     );
 
 const routePrioritySelect =
@@ -5641,6 +5656,9 @@ const logoutButton =
 const SAVED_ROUTES_STORAGE_KEY =
     "commuteTogetherSavedRoutes";
 
+const ROUTE_DECISIONS_STORAGE_KEY =
+    "commuteTogetherRouteDecisions";
+
 const commuterUsersKey =
     "commuteTogetherUsers";
 
@@ -5665,8 +5683,14 @@ const defaultSavedRoutes = [
             "Raffles Place",
         commuteTime:
             "08:00",
-        notifyMinutes:
+        checkMode:
+            "before",
+        checkWindowMinutes:
             20,
+        checkRangeStart:
+            "07:00",
+        checkRangeEnd:
+            "09:00",
         priority:
             "fastest"
     },
@@ -5681,8 +5705,14 @@ const defaultSavedRoutes = [
             "Sengkang",
         commuteTime:
             "18:15",
-        notifyMinutes:
+        checkMode:
+            "before",
+        checkWindowMinutes:
             30,
+        checkRangeStart:
+            "17:15",
+        checkRangeEnd:
+            "19:15",
         priority:
             "fastest"
     }
@@ -5736,30 +5766,18 @@ function getRoutePriorityLabel(value) {
     return labels[value] || labels.fastest;
 }
 
-function getSelectedNotifyMinutes() {
+function getSelectedCheckWindowMinutes() {
+    return checkWindowSelect
+        ? Number(checkWindowSelect.value)
+        : 20;
+}
 
-    if (
-        notifyBeforeSelect &&
-        notifyBeforeSelect.value === "custom"
-    ) {
-
-        const customValue =
-            customNotifyBeforeInput
-                ? Number(
-                    customNotifyBeforeInput.value
-                )
-                : 0;
-
-        return customValue > 0
-            ? customValue
-            : 60;
+function getScheduleDescription(route) {
+    if (route.checkMode === "range") {
+        return `checks ${route.checkRangeStart} to ${route.checkRangeEnd} every 5 min`;
     }
 
-    return notifyBeforeSelect
-        ? Number(
-            notifyBeforeSelect.value
-        )
-        : 20;
+    return `checks ${route.checkWindowMinutes || route.notifyMinutes || 20} min before departure`;
 }
 
 function escapeHtml(value) {
@@ -6032,6 +6050,89 @@ function getNextReminderTime(route) {
     return reminder;
 }
 
+function getNextScheduledTime(timeValue) {
+    if (!timeValue) {
+        return null;
+    }
+
+    const [hourText, minuteText] =
+        timeValue.split(":");
+
+    const scheduledTime =
+        new Date();
+
+    scheduledTime.setHours(
+        Number(hourText),
+        Number(minuteText),
+        0,
+        0
+    );
+
+    if (scheduledTime <= new Date()) {
+        scheduledTime.setDate(
+            scheduledTime.getDate() + 1
+        );
+    }
+
+    return scheduledTime;
+}
+
+function getMonitoringTimes(route) {
+    if (route.checkMode === "range") {
+        const start =
+            getNextScheduledTime(
+                route.checkRangeStart
+            );
+
+        const end =
+            getNextScheduledTime(
+                route.checkRangeEnd
+            );
+
+        if (
+            start &&
+            end &&
+            end <= start
+        ) {
+            end.setDate(
+                end.getDate() + 1
+            );
+        }
+
+        return {
+            start:
+                start,
+            end:
+                end
+        };
+    }
+
+    const start =
+        getNextReminderTime({
+            ...route,
+            notifyMinutes:
+                Number(
+                    route.checkWindowMinutes ||
+                    route.notifyMinutes ||
+                    20
+                )
+        });
+
+    const end =
+        getNextReminderTime({
+            ...route,
+            notifyMinutes:
+                0
+        });
+
+    return {
+        start:
+            start,
+        end:
+            end
+    };
+}
+
 function getAlertSearchText(alert) {
     return [
         alert.id,
@@ -6052,34 +6153,62 @@ function getAlertSearchText(alert) {
         .toLowerCase();
 }
 
-function isRouteLikelyAffectedByAlert(route, alert) {
-    const alertText =
-        getAlertSearchText(alert);
+function getRouteDecisionDate() {
+    const now =
+        new Date();
 
-    const routeTerms =
-        [
-            route.start,
-            route.end,
-            route.startPlaceId,
-            route.endPlaceId,
-            ...(Array.isArray(route.viaPoints)
-                ? route.viaPoints.flatMap(point => [
-                    point.name,
-                    point.address,
-                    point.placeId
-                ])
-                : [])
-        ]
-            .filter(Boolean)
-            .map(value => String(value).toLowerCase())
-            .filter(value => value.length >= 3);
+    return [
+        now.getFullYear(),
+        String(now.getMonth() + 1).padStart(2, "0"),
+        String(now.getDate()).padStart(2, "0")
+    ].join("-");
+}
 
-    return routeTerms.some(
-        term => alertText.includes(term)
+function loadRouteDecisions() {
+    try {
+        const decisions =
+            JSON.parse(
+                localStorage.getItem(
+                    ROUTE_DECISIONS_STORAGE_KEY
+                ) || "{}"
+            );
+
+        return decisions && typeof decisions === "object"
+            ? decisions
+            : {};
+    } catch (error) {
+        console.error(
+            "Unable to load route decisions:",
+            error
+        );
+
+        return {};
+    }
+}
+
+function saveRouteDecision(route, decision) {
+    const decisions =
+        loadRouteDecisions();
+
+    decisions[route.id] =
+        decision;
+
+    localStorage.setItem(
+        ROUTE_DECISIONS_STORAGE_KEY,
+        JSON.stringify(decisions)
     );
 }
 
-async function getRouteActiveAlerts(route) {
+function getTodaysRouteDecision(route) {
+    const decision =
+        loadRouteDecisions()[route.id];
+
+    return decision && decision.date === getRouteDecisionDate()
+        ? decision
+        : null;
+}
+
+async function evaluateRouteAlerts(route) {
     const useMockFault =
         new URLSearchParams(
             window.location.search
@@ -6106,13 +6235,105 @@ async function getRouteActiveAlerts(route) {
             ? data.alerts
             : [];
 
-    return alerts.filter(
-        alert =>
-            isRouteLikelyAffectedByAlert(
-                route,
-                alert
-            )
+    if (alerts.length === 0) {
+        saveRouteDecision(
+            route,
+            {
+                date:
+                    getRouteDecisionDate(),
+                evaluatedAt:
+                    new Date().toISOString(),
+                status:
+                    "complete",
+                affectedAlerts:
+                    [],
+                decisions:
+                    []
+            }
+        );
+
+        return [];
+    }
+
+    const decisions =
+        await Promise.all(
+            alerts.map(async alert => {
+                const decisionResponse =
+                    await fetch(
+                        "/api/incidents/gemini-decision",
+                        {
+                            method:
+                                "POST",
+                            headers: {
+                                "Content-Type":
+                                    "application/json"
+                            },
+                            body:
+                                JSON.stringify({
+                                    route:
+                                        route,
+                                    alert:
+                                        alert
+                                })
+                        }
+                    );
+
+                if (!decisionResponse.ok) {
+                    throw new Error(
+                        "Unable to decide whether an LTA alert affects the route"
+                    );
+                }
+
+                const decision =
+                    await decisionResponse.json();
+
+                return {
+                    alert:
+                        alert,
+                    decision:
+                        decision
+                };
+            })
+        );
+
+    const affectedAlerts =
+        decisions
+            .filter(item => item.decision.affected === true)
+            .map(item => ({
+                ...item.alert,
+                decisionSummary:
+                    item.decision.summary || ""
+            }));
+
+    const savedDecision =
+        {
+            date:
+                getRouteDecisionDate(),
+            evaluatedAt:
+                new Date().toISOString(),
+            status:
+                "complete",
+            affectedAlerts:
+                affectedAlerts,
+            decisions:
+                decisions.map(item => ({
+                    alertId:
+                        item.alert.id,
+                    affected:
+                        item.decision.affected === true,
+                    source:
+                        item.decision.source,
+                    summary:
+                        item.decision.summary || ""
+                }))
+        };
+
+    saveRouteDecision(
+        route,
+        savedDecision
     );
+
+    return affectedAlerts;
 }
 
 function showRouteReminderPopup(route, alerts) {
@@ -6174,90 +6395,178 @@ function scheduleRouteReminder(route) {
         return;
     }
 
-    if (
-        routeReminderTimers.has(route.id)
-    ) {
-        clearTimeout(
-            routeReminderTimers.get(route.id)
-        );
+    const existingTimers =
+        routeReminderTimers.get(route.id);
+
+    if (existingTimers) {
+        clearTimeout(existingTimers.start);
+        clearInterval(existingTimers.poll);
     }
 
-    const reminderTime =
-        getNextReminderTime(route);
+    const monitoringTimes =
+        getMonitoringTimes(route);
 
-    if (!reminderTime) {
+    if (!monitoringTimes.start || !monitoringTimes.end) {
         return;
     }
 
-    const timerId =
-        setTimeout(
-            async () => {
-                let activeAlerts = [];
+    const timers =
+        {
+            start:
+                null,
+            poll:
+                null
+        };
 
-                try {
-                    activeAlerts =
-                        await getRouteActiveAlerts(
-                            route
-                        );
-                } catch (error) {
-                    console.error(
-                        "Route disruption check failed:",
-                        error
-                    );
-                }
-
-                if (activeAlerts.length > 0) {
-                    showRouteReminderPopup(
-                        route,
-                        activeAlerts
-                    );
-
-                    if (
-                        "Notification" in window &&
-                        Notification.permission ===
-                            "granted"
-                    ) {
-
-                        const notification =
-                            new Notification(
-                                route.name ||
-                                    "Route disruption",
-                                {
-                                    body:
-                                        `${route.start} to ${route.end} may be affected by an active LTA alert.`
-                                }
-                            );
-
-                        notification.onclick =
-                            () => {
-                                window.focus();
-                                window.location.href =
-                                    getRouteDetailUrl(
-                                        route.id
-                                    );
-                            };
-                    }
-                }
-
-                scheduleRouteReminder(
+    const runCheck =
+        async () => {
+            const previousDecision =
+                getTodaysRouteDecision(
                     route
                 );
 
-            },
-            reminderTime.getTime() -
+            const previousAlertIds =
+                new Set(
+                    Array.isArray(
+                        previousDecision &&
+                        previousDecision.affectedAlerts
+                    )
+                        ? previousDecision.affectedAlerts.map(
+                            alert => alert.id
+                        )
+                        : []
+                );
+
+            let activeAlerts = [];
+            let checkSucceeded =
+                false;
+
+            try {
+                activeAlerts =
+                    await evaluateRouteAlerts(
+                        route
+                    );
+
+                checkSucceeded =
+                    true;
+            } catch (error) {
+                console.error(
+                    "Route disruption check failed:",
+                    error
+                );
+            }
+
+            if (!checkSucceeded) {
+                return;
+            }
+
+            const currentAlertIds =
+                new Set(
+                    activeAlerts.map(
+                        alert => alert.id
+                    )
+                );
+
+            const changed =
+                activeAlerts.some(
+                    alert =>
+                        !previousAlertIds.has(
+                            alert.id
+                        )
+                ) ||
+                previousAlertIds.size !==
+                    currentAlertIds.size;
+
+            if (activeAlerts.length > 0) {
+
+                showRouteReminderPopup(
+                    route,
+                    activeAlerts
+                );
+            }
+
+            if (
+                changed &&
+                "Notification" in window &&
+                Notification.permission ===
+                    "granted"
+            ) {
+                const message =
+                    activeAlerts.length > 0
+                        ? `${activeAlerts.length} LTA disruption${activeAlerts.length === 1 ? "" : "s"} now affect${activeAlerts.length === 1 ? "s" : ""} ${route.name || "your route"}.`
+                        : `The LTA disruption affecting ${route.name || "your route"} has cleared.`;
+
+                    const notification =
+                        new Notification(
+                            route.name ||
+                                "Route disruption",
+                            {
+                                body:
+                                    message
+                            }
+                        );
+
+                    notification.onclick =
+                        () => {
+                            window.focus();
+                            window.location.href =
+                                getRouteDetailUrl(
+                                    route.id
+                                );
+                        };
+            }
+        };
+
+    const startMonitoring =
+        async () => {
+            await runCheck();
+
+            const remaining =
+                monitoringTimes.end.getTime() -
+                Date.now();
+
+            if (remaining > 0) {
+                timers.poll =
+                    setInterval(
+                        runCheck,
+                        5 * 60 * 1000
+                    );
+
+                setTimeout(
+                    () => {
+                        clearInterval(
+                            timers.poll
+                        );
+
+                        scheduleRouteReminder(
+                            route
+                        );
+                    },
+                    remaining
+                );
+            }
+        };
+
+    timers.start =
+        setTimeout(
+            startMonitoring,
+            monitoringTimes.start.getTime() -
                 Date.now()
         );
 
     routeReminderTimers.set(
         route.id,
-        timerId
+        timers
     );
 }
 
 function scheduleAllRouteReminders() {
 
     routeReminderTimers.forEach(
-        timerId => clearTimeout(timerId)
+        timers => {
+            clearTimeout(timers.start);
+            clearInterval(timers.poll);
+        }
     );
 
     routeReminderTimers.clear();
@@ -6299,7 +6608,7 @@ function renderSavedRouteItem(route) {
         >::</button>
         <div class="saved-route-copy">
             <strong>${escapeHtml(route.name || "Daily commute")}</strong>
-            <span>${escapeHtml(route.start)} to ${escapeHtml(route.end)} - ${escapeHtml(travelTime)} - alert ${escapeHtml(route.notifyMinutes)} min before - ${escapeHtml(priority)}</span>
+            <span>${escapeHtml(route.start)} to ${escapeHtml(route.end)} - ${escapeHtml(travelTime)} - ${escapeHtml(getScheduleDescription(route))} - ${escapeHtml(priority)}</span>
         </div>
         <span class="route-status-pill">Monitoring</span>
         <button
@@ -6366,8 +6675,23 @@ function addSavedCommuterRoute() {
             ? commuterRouteNameInput.value.trim()
             : "Daily commute";
 
-    const notifyMinutes =
-        getSelectedNotifyMinutes();
+    const checkMode =
+        checkModeSelect
+            ? checkModeSelect.value
+            : "before";
+
+    const checkWindowMinutes =
+        getSelectedCheckWindowMinutes();
+
+    const checkRangeStart =
+        checkRangeStartInput
+            ? checkRangeStartInput.value
+            : "07:00";
+
+    const checkRangeEnd =
+        checkRangeEndInput
+            ? checkRangeEndInput.value
+            : "09:00";
 
     const travelTime =
         commuteTimeInput
@@ -6400,7 +6724,7 @@ function addSavedCommuterRoute() {
         >⋮⋮</button>
         <div class="saved-route-copy">
             <strong>${escapeHtml(routeName)}</strong>
-            <span>${escapeHtml(start)} to ${escapeHtml(end)} - ${escapeHtml(travelTime)} - alert ${escapeHtml(notifyMinutes)} min before - ${escapeHtml(priority)}</span>
+            <span>${escapeHtml(start)} to ${escapeHtml(end)} - ${escapeHtml(travelTime)} - ${escapeHtml(getScheduleDescription({ checkMode, checkWindowMinutes, checkRangeStart, checkRangeEnd }))} - ${escapeHtml(priority)}</span>
         </div>
         <span class="route-status-pill">Monitoring</span>
         <button
@@ -6415,7 +6739,12 @@ function addSavedCommuterRoute() {
 
     if (incidentTimeLabel) {
         incidentTimeLabel.textContent =
-            `Check ${notifyMinutes} min before`;
+            getScheduleDescription({
+                checkMode,
+                checkWindowMinutes,
+                checkRangeStart,
+                checkRangeEnd
+            });
     }
 
     showCommuterMessage(
@@ -6460,8 +6789,36 @@ function addSavedCommuterRouteV2() {
             ? commuterRouteNameInput.value.trim()
             : "Daily commute";
 
-    const notifyMinutes =
-        getSelectedNotifyMinutes();
+    const checkMode =
+        checkModeSelect
+            ? checkModeSelect.value
+            : "before";
+
+    const checkWindowMinutes =
+        getSelectedCheckWindowMinutes();
+
+    const checkRangeStart =
+        checkRangeStartInput
+            ? checkRangeStartInput.value
+            : "07:00";
+
+    const checkRangeEnd =
+        checkRangeEndInput
+            ? checkRangeEndInput.value
+            : "09:00";
+
+    if (
+        checkMode === "range" &&
+        (!checkRangeStart ||
+            !checkRangeEnd ||
+            checkRangeEnd <= checkRangeStart)
+    ) {
+        showCommuterMessage(
+            "Choose a valid monitoring range with an end time after the start time."
+        );
+
+        return;
+    }
 
     const commuteTime =
         commuteTimeInput
@@ -6510,8 +6867,17 @@ function addSavedCommuterRouteV2() {
             commuteTime:
                 commuteTime,
 
-            notifyMinutes:
-                notifyMinutes,
+            checkMode:
+                checkMode,
+
+            checkWindowMinutes:
+                checkWindowMinutes,
+
+            checkRangeStart:
+                checkRangeStart,
+
+            checkRangeEnd:
+                checkRangeEnd,
 
             priority:
                 "fastest",
@@ -6539,11 +6905,13 @@ function addSavedCommuterRouteV2() {
 
     if (incidentTimeLabel) {
         incidentTimeLabel.textContent =
-            `Check ${notifyMinutes} min before`;
+            getScheduleDescription(
+                route
+            );
     }
 
     showCommuterMessage(
-        `Route alert saved for ${travelTime}. The app will check LTA ${notifyMinutes} minutes before you leave and only alert if your route looks affected.`
+        `Route alert saved for ${travelTime}. The app will ${getScheduleDescription(route)} and only notify when the affected disruptions change.`
     );
 
     if (
@@ -6562,18 +6930,26 @@ if (commuterRouteFormButton) {
     );
 }
 
-if (notifyBeforeSelect && customNotifyField) {
-
-    notifyBeforeSelect.addEventListener(
+if (
+    checkModeSelect &&
+    checkBeforeField &&
+    checkRangeFields
+) {
+    checkModeSelect.addEventListener(
         "change",
         () => {
+            const isRange =
+                checkModeSelect.value === "range";
 
-            customNotifyField.classList.toggle(
+            checkBeforeField.classList.toggle(
                 "hidden",
-                notifyBeforeSelect.value !==
-                    "custom"
+                isRange
             );
 
+            checkRangeFields.classList.toggle(
+                "hidden",
+                !isRange
+            );
         }
     );
 }
@@ -8173,19 +8549,9 @@ const incidentDescription =
         )
         : null;
 
-const incidentGuidanceHeading =
+const ltaIncidentAlerts =
     document.getElementById(
-        "incidentGuidanceHeading"
-    );
-
-const incidentGuidanceSummary =
-    document.getElementById(
-        "incidentGuidanceSummary"
-    );
-
-const incidentGuidanceSuggestions =
-    document.getElementById(
-        "incidentGuidanceSuggestions"
+        "ltaIncidentAlerts"
     );
 
 const mapIncidentGuidanceHeading =
@@ -8196,11 +8562,6 @@ const mapIncidentGuidanceHeading =
 const mapIncidentGuidanceSummary =
     document.getElementById(
         "mapIncidentGuidanceSummary"
-    );
-
-const mapIncidentGuidanceSuggestions =
-    document.getElementById(
-        "mapIncidentGuidanceSuggestions"
     );
 
 function formatLtaAlertTime(
@@ -8254,6 +8615,10 @@ function renderLtaTrainAlerts(
         incidentDescription.textContent =
             "LTA is not reporting any active GTFS realtime train service alerts right now.";
 
+        if (ltaIncidentAlerts) {
+            ltaIncidentAlerts.innerHTML = "";
+        }
+
     } else {
 
         const firstAlert =
@@ -8270,6 +8635,17 @@ function renderLtaTrainAlerts(
         incidentDescription.textContent =
             firstAlert.description ||
             `${alerts.length} active train service alert${alerts.length === 1 ? "" : "s"} reported by LTA.`;
+
+        if (ltaIncidentAlerts) {
+            ltaIncidentAlerts.innerHTML = alerts
+                .map(alert => `
+                    <article class="lta-incident-alert">
+                        <strong>${escapeHtml(alert.header || "LTA train service alert")}</strong>
+                        <span>${escapeHtml(alert.description || "No further details were supplied by LTA.")}</span>
+                    </article>
+                `)
+                .join("");
+        }
     }
 
     if (incidentTimeLabel) {
@@ -8278,25 +8654,6 @@ function renderLtaTrainAlerts(
                 data.timestamp
             )}`;
     }
-}
-
-function renderIncidentGuidanceSuggestions(
-    container,
-    suggestions
-) {
-    if (!container) {
-        return;
-    }
-
-    container.innerHTML =
-        Array.isArray(suggestions)
-            ? suggestions.slice(0, 4).map(suggestion => `
-                <article class="incident-guidance-suggestion">
-                    <strong>${escapeHtml(suggestion.title || "Suggestion")}</strong>
-                    <span>${escapeHtml(suggestion.detail || "")}</span>
-                </article>
-            `).join("")
-            : "";
 }
 
 function renderIncidentGuidance(
@@ -8315,7 +8672,6 @@ function renderIncidentGuidance(
             : "Review the latest LTA service information before leaving.";
 
     [
-        [incidentGuidanceHeading, heading],
         [mapIncidentGuidanceHeading, heading]
     ].forEach(([element, text]) => {
         if (element) {
@@ -8324,7 +8680,6 @@ function renderIncidentGuidance(
     });
 
     [
-        [incidentGuidanceSummary, summary],
         [mapIncidentGuidanceSummary, summary]
     ].forEach(([element, text]) => {
         if (element) {
@@ -8332,15 +8687,6 @@ function renderIncidentGuidance(
         }
     });
 
-    renderIncidentGuidanceSuggestions(
-        incidentGuidanceSuggestions,
-        guidance && guidance.suggestions
-    );
-
-    renderIncidentGuidanceSuggestions(
-        mapIncidentGuidanceSuggestions,
-        guidance && guidance.suggestions
-    );
 }
 
 async function loadGeminiIncidentGuidance(
@@ -8401,11 +8747,15 @@ async function loadLtaTrainAlerts() {
             data
         );
 
-        await loadGeminiIncidentGuidance(
-            Array.isArray(data.alerts)
-                ? data.alerts
-                : []
-        );
+        if (mapIncidentGuidanceHeading) {
+            mapIncidentGuidanceHeading.textContent =
+                "Route-specific incident checks";
+        }
+
+        if (mapIncidentGuidanceSummary) {
+            mapIncidentGuidanceSummary.textContent =
+                "Gemini checks each saved route once at its scheduled alert time and only affected LTA disruptions appear on that route.";
+        }
 
     } catch (error) {
 

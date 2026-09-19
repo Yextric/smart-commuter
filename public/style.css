@@ -1773,6 +1773,60 @@ body[data-app-tab="reminder"] #liveJourneySection {
     line-height: 1.5;
 }
 
+.lta-incident-alerts {
+    display: grid;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.lta-incident-alert {
+    padding: 12px;
+    border-left: 3px solid #d96b4f;
+    background: rgba(255, 255, 255, 0.72);
+}
+
+.lta-incident-alert strong,
+.lta-incident-alert span {
+    display: block;
+}
+
+.lta-incident-alert strong {
+    color: #243129;
+    font-size: 14px;
+}
+
+.lta-incident-alert span {
+    margin-top: 6px;
+    color: #6f766f;
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-line;
+}
+
+.lta-incident-alert em {
+    display: block;
+    margin-top: 8px;
+    color: #49665a;
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.gemini-incident-summary {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(36, 49, 41, 0.12);
+}
+
+.gemini-incident-summary h4 {
+    margin: 4px 0 6px;
+    color: #243129;
+    font-size: 15px;
+}
+
+.gemini-incident-summary p {
+    margin: 0;
+}
+
 .incident-guidance-panel,
 .map-incident-guidance {
     display: grid;

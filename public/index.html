@@ -479,52 +479,66 @@
                     </div>
 
                     <div class="commute-field">
-                        <label for="notifyBefore">
-                            NOTIFY BEFORE
+                        <label for="checkMode">
+                            CHECK MODE
                         </label>
 
-                        <select id="notifyBefore">
-                            <option value="5">
-                                5 minutes before
+                        <select id="checkMode">
+                            <option value="before" selected>
+                                Before departure
                             </option>
-                            <option value="10">
-                                10 minutes before
+                            <option value="range">
+                                Time range
                             </option>
+                        </select>
+                    </div>
+
+                    <div
+                        id="checkBeforeField"
+                        class="commute-field"
+                    >
+                        <label for="checkWindow">
+                            START CHECKING
+                        </label>
+
+                        <select id="checkWindow">
                             <option value="20" selected>
                                 20 minutes before
                             </option>
                             <option value="30">
                                 30 minutes before
                             </option>
-                            <option value="45">
-                                45 minutes before
-                            </option>
                             <option value="60">
                                 1 hour before
-                            </option>
-                            <option value="custom">
-                                Custom time
                             </option>
                         </select>
                     </div>
 
-                </div>
-
-                <div
-                    id="customNotifyField"
-                    class="commute-field custom-notify-field hidden"
-                >
-                    <label for="customNotifyBefore">
-                        CUSTOM NOTICE
-                    </label>
-
-                    <input
-                        type="number"
-                        id="customNotifyBefore"
-                        min="1"
-                        max="180"
-                        value="75"
+                    <div
+                        id="checkRangeFields"
+                        class="commute-field hidden"
                     >
+                        <label for="checkRangeStart">
+                            RANGE START
+                        </label>
+
+                        <input
+                            type="time"
+                            id="checkRangeStart"
+                            value="07:00"
+                        >
+
+                        <label for="checkRangeEnd">
+                            RANGE END
+                        </label>
+
+                        <input
+                            type="time"
+                            id="checkRangeEnd"
+                            value="09:00"
+                        >
+                    </div>
+
                 </div>
 
             </div>
@@ -1212,6 +1226,11 @@
                         Checking live LTA train service alerts...
                     </p>
 
+                    <div
+                        id="ltaIncidentAlerts"
+                        class="lta-incident-alerts"
+                    ></div>
+
                 </div>
 
                 <span class="incident-time">
@@ -1499,11 +1518,6 @@
                         The latest LTA incident summary and commuter suggestions will appear here.
                     </p>
                 </div>
-
-                <div
-                    id="mapIncidentGuidanceSuggestions"
-                    class="incident-guidance-suggestions"
-                ></div>
 
             </div>
 
