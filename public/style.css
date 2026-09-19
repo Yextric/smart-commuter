@@ -1274,6 +1274,23 @@ body[data-app-tab="reminder"] #liveJourneySection {
     line-height: 1.5;
 }
 
+.route-customizer {
+    border-left: 4px solid #dce9df;
+}
+
+.route-customizer > div:first-child::after {
+    content: "OPTIONAL";
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 8px;
+    border: 1px solid #cfe0d3;
+    border-radius: 999px;
+    color: #557863;
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 1px;
+}
+
 .via-point-row {
     display: flex;
     gap: 10px;
@@ -1416,6 +1433,51 @@ body[data-app-tab="reminder"] #liveJourneySection {
     display: block;
 }
 
+@media (max-width: 700px) {
+    .route-detail-container {
+        padding: 0 12px 32px;
+    }
+
+    .route-detail-header,
+    .route-customizer,
+    .route-map-shell {
+        margin-top: 14px;
+        padding: 16px;
+        border-radius: 14px;
+    }
+
+    .route-detail-header h2 {
+        font-size: 22px;
+        overflow-wrap: anywhere;
+    }
+
+    .route-detail-header p,
+    .route-customizer p {
+        font-size: 13px;
+    }
+
+    .via-point-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .via-point-row button {
+        width: 100%;
+    }
+
+    .google-route-map {
+        min-height: 360px;
+    }
+
+    .route-alternatives {
+        grid-template-columns: 1fr;
+    }
+
+    .route-alternative-option {
+        min-height: 0;
+    }
+}
+
 .route-alternative-option strong {
     font-size: 13px;
 }
@@ -1432,6 +1494,12 @@ body[data-app-tab="reminder"] #liveJourneySection {
     color: #68756d;
     font-size: 12px;
     line-height: 1.35;
+}
+
+.route-alternative-option .route-option-description {
+    color: #3f594b;
+    font-size: 12px;
+    font-weight: 700;
 }
 
 .saved-route-item strong,
